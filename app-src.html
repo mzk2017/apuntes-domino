@@ -1102,6 +1102,58 @@ function componentsInRect(test, W, x0, y0, x1, y1){
   return comps;
 }
 
+/* ============ OpenCV (carga perezosa, con respaldo) ============ */
+var cvState = 'no';   /* no | loading | ready | failed */
+function loadCV(){
+  if(cvState !== 'no') return;
+  cvState = 'loading';
+  var s = document.createElement('script');
+  s.src = 'opencv.js';
+  s.async = true;
+  s.onload = function(){
+    var c = window.cv;
+    if(c && typeof c.then === 'function'){
+      c.then(function(m){ window.cv = m; cvState = 'ready'; })
+       .catch(function(){ cvState = 'failed'; });
+    }else if(c && c.Mat){
+      cvState = 'ready';
+    }else if(c){
+      c.onRuntimeInitialized = function(){ cvState = 'ready'; };
+    }else{
+      cvState = 'failed';
+    }
+  };
+  s.onerror = function(){ cvState = 'failed'; };
+  document.head.appendChild(s);
+}
+
+/* círculos con el detector de Hough de OpenCV: encuentra circulitos
+   aunque se toquen entre sí o con la línea del centro, y aguanta
+   sombras y cambios de luz mucho mejor que un umbral */
+function cvFindBlobs(canvas){
+  var blobs = [];
+  var src=null, gr=null, circles=null;
+  try{
+    src = cv.imread(canvas);
+    gr = new cv.Mat();
+    cv.cvtColor(src, gr, cv.COLOR_RGBA2GRAY);
+    cv.medianBlur(gr, gr, 3);
+    circles = new cv.Mat();
+    var minR = 4;
+    var maxR = Math.max(12, Math.round(Math.min(canvas.width, canvas.height) / 14));
+    var minDist = Math.max(8, minR * 2);
+    cv.HoughCircles(gr, circles, cv.HOUGH_GRADIENT, 1, minDist, 100, 24, minR, maxR);
+    for(var i = 0; i < circles.cols; i++){
+      var x = circles.data32F[i * 3];
+      var y = circles.data32F[i * 3 + 1];
+      var r = circles.data32F[i * 3 + 2];
+      blobs.push({x: x, y: y, r: r, area: Math.PI * r * r});
+    }
+  }catch(e){ blobs = null; }
+  [src, gr, circles].forEach(function(m){ try{ if(m) m.delete(); }catch(e){} });
+  return blobs;
+}
+
 /* calibración guardada: proporción punto/ficha aprendida de una muestra */
 var CALIB_KEY = 'apuntes-domino-calib';
 var calibrating = false;
@@ -1133,6 +1185,9 @@ function analyzeDominoes(source, srcW, srcH){
   var thr = otsu(hist, W * H);
   var isBright = function(idx){ return gray[idx] > thr; };
   var isDark = function(idx){ return gray[idx] <= thr; };
+
+  /* con OpenCV listo, los candidatos a punto salen de su detector adaptativo */
+  var cvBlobs = (cvState === 'ready' && window.cv) ? cvFindBlobs(canvas) : null;
 
   /* 1) manchas claras grandes. Antes: EROSIÓN — encogemos lo claro unos
      píxeles por todos lados para que las ranuras finas entre fichas
@@ -1298,7 +1353,31 @@ function analyzeDominoes(source, srcW, srcH){
     var pipThr = Math.min(thr, bone - Math.max(35, bone * 0.25));
     var isDarkLocal = function(idx){ return gray[idx] < pipThr; };
 
-    var pips = componentsInRect(isDarkLocal, W, x0, y0, x1, y1).filter(function(p){
+    var rawPips;
+    if(cvBlobs){
+      rawPips = [];
+      cvBlobs.forEach(function(b){
+        if(b.x <= x0 + 2 || b.x >= x1 - 2 || b.y <= y0 + 2 || b.y >= y1 - 2) return;
+        /* oscuro respecto al hueso: centro o alrededor del centro (los
+           puntos con brillo especular son "donas") */
+        var dark = false;
+        [[0,0],[0.55,0],[-0.55,0],[0,0.55],[0,-0.55]].forEach(function(o){
+          var gx = Math.round(b.x + o[0]*b.r), gy = Math.round(b.y + o[1]*b.r);
+          if(gx >= 0 && gy >= 0 && gx < W && gy < H && gray[gy*W+gx] < pipThr) dark = true;
+        });
+        if(!dark) return;
+        rawPips.push({
+          minX: Math.max(x0, Math.round(b.x - b.r)), maxX: Math.min(x1-1, Math.round(b.x + b.r)),
+          minY: Math.max(y0, Math.round(b.y - b.r)), maxY: Math.min(y1-1, Math.round(b.y + b.r)),
+          area: b.area,
+          touchesBorder: (b.x - b.r) < x0 + 1 || (b.x + b.r) > x1 - 1 ||
+                         (b.y - b.r) < y0 + 1 || (b.y + b.r) > y1 - 1
+        });
+      });
+    }else{
+      rawPips = componentsInRect(isDarkLocal, W, x0, y0, x1, y1);
+    }
+    var pips = rawPips.filter(function(p){
       if(p.touchesBorder) return false;        /* el fondo/ranura toca el borde */
       var pw = p.maxX - p.minX + 1, ph = p.maxY - p.minY + 1;
       var pAspect = Math.max(pw, ph) / Math.min(pw, ph);
@@ -1331,6 +1410,28 @@ function analyzeDominoes(source, srcW, srcH){
       p.fillR = fill; p.aspectR = pAspect;
       return true;
     });
+    /* el clavito/remache vive EN la línea que divide la ficha. Buscamos
+       en qué eje está la franja central OSCURA de verdad (la división)
+       y quitamos los "puntos" pegados a ella. */
+    if(aspect >= 1.5 && pips.length){
+      var myMid = Math.round((y0 + y1) / 2), mxMid = Math.round((x0 + x1) / 2);
+      var rfm = rowFrac(x0, Math.max(y0, myMid - 1), x1, Math.min(y1, myMid + 2));
+      var cfm = colFrac(Math.max(x0, mxMid - 1), y0, Math.min(x1, mxMid + 2), y1);
+      var mH = 0, mV = 0, k;
+      for(k = 0; k < rfm.length; k++) mH += rfm[k];
+      mH /= (rfm.length || 1);
+      for(k = 0; k < cfm.length; k++) mV += cfm[k];
+      mV /= (cfm.length || 1);
+      if(mH < mV && mH < 0.6){
+        pips = pips.filter(function(p){
+          return Math.abs((p.minY + p.maxY) / 2 - myMid) >= bh * 0.05;
+        });
+      }else if(mV <= mH && mV < 0.6){
+        pips = pips.filter(function(p){
+          return Math.abs((p.minX + p.maxX) / 2 - mxMid) >= bw * 0.05;
+        });
+      }
+    }
     tileInfo.push({box:[x0, y0, bw, bh], pips:pips});
     allPips = allPips.concat(pips);
   }
@@ -1348,7 +1449,8 @@ function analyzeDominoes(source, srcW, srcH){
     t.pips = t.pips.filter(function(p){
       var ratio = median ? p.area / median : 1;
       if(ratio < 0.35 || ratio > 3.4) return false;
-      p.units = ratio >= 1.7 ? Math.min(3, Math.round(ratio)) : 1;
+      /* con OpenCV cada círculo ya viene separado: nunca vale por 2 */
+      p.units = (!cvBlobs && ratio >= 1.7) ? Math.min(3, Math.round(ratio)) : 1;
       t.count += p.units;
       return true;
     });
@@ -1385,6 +1487,7 @@ function analyzeDominoes(source, srcW, srcH){
     groups.sort(function(a,b){ return b.score - a.score; });
     if(groups[0].score > 0) tileInfo = groups[0].items;
   }
+
   var total = 0;
   tileInfo.forEach(function(t){ total += t.count; });
 
@@ -1442,6 +1545,7 @@ function analyzeDominoes(source, srcW, srcH){
     pipsXY: tileInfo.map(function(t){ return t.pips.map(function(p){
       return [Math.round((p.minX+p.maxX)/2), Math.round((p.minY+p.maxY)/2), p.units]; }); }),
     pds: tileInfo.map(function(t){ return t.pd; }),
+    engine: cvBlobs ? 'opencv' : 'basico',
     scale: scale,
     dataUrl: canvas.toDataURL('image/jpeg', 0.8)
   };
@@ -1457,6 +1561,7 @@ function refreshCalibStatus(){
   $('calib-status').textContent = loadCalib() ? t('calibOk') : t('calibNo');
 }
 $('btn-cam').addEventListener('click', function(){
+  loadCV();
   calibMode = false;
   $('camchoice-msg').textContent = '';
   refreshCalibStatus();
@@ -1469,6 +1574,7 @@ $('ov-camchoice').addEventListener('click', function(e){ if(e.target === this) t
 
 /* --- calibración con una ficha de muestra (desde 🏠 Ajustes) --- */
 function openCalibSheet(){
+  loadCV();
   calibMode = true;
   $('calib-msg').textContent = '';
   $('calib-live').classList.toggle('hidden', !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
@@ -1581,7 +1687,8 @@ function showCountSheet(res){
   if(res && res.tiles > 0){
     $('count-img').src = res.dataUrl;
     $('count-img').style.display = '';
-    $('count-hint').textContent = tf('counted', res.total);
+    $('count-hint').textContent = tf('counted', res.total) +
+      (res.engine === 'opencv' ? ' · OpenCV ✓' : '');
     countValue = res.total;
   }else{
     $('count-img').style.display = 'none';
