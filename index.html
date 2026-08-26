@@ -878,69 +878,215 @@ function analyzeDominoes(source, srcW, srcH){
   var isBright = function(idx){ return gray[idx] > thr; };
   var isDark = function(idx){ return gray[idx] <= thr; };
 
-  /* 1) fichas: manchas claras grandes y más o menos rectangulares */
+  /* 1) manchas claras grandes. Antes: EROSIÓN — encogemos lo claro unos
+     píxeles por todos lados para que las ranuras finas entre fichas
+     pegadas se abran y cada ficha quede como mancha separada. */
   var minTileArea = W * H * 0.004;
-  var tiles = componentsInRect(isBright, W, 0, 0, W, H).filter(function(c){
-    if(c.area < minTileArea) return false;
-    var bw = c.maxX - c.minX + 1, bh = c.maxY - c.minY + 1;
-    var aspect = Math.max(bw, bh) / Math.min(bw, bh);
-    var fill = c.area / (bw * bh);
-    return aspect <= 3.6 && fill >= 0.4;
-  });
-
-  /* 2) puntos dentro de cada ficha */
-  var allPips = [], tileInfo = [];
-  tiles.forEach(function(t){
-    var x0 = Math.max(0, t.minX - 2), y0 = Math.max(0, t.minY - 2);
-    var x1 = Math.min(W, t.maxX + 3), y1 = Math.min(H, t.maxY + 3);
-    var bw = t.maxX - t.minX + 1, bh = t.maxY - t.minY + 1;
-    var tw = Math.min(bw, bh);                 /* lado corto de la ficha */
-    var longSide = Math.max(bw, bh);
-    var tcx = (t.minX + t.maxX) / 2, tcy = (t.minY + t.maxY) / 2;
-
-    /* brillo típico del hueso de ESTA ficha (mediana de sus píxeles claros),
-       para que una ficha en sombra no pierda sus puntos */
-    var vals = [];
-    for(var sy = t.minY; sy <= t.maxY; sy += 2){
-      for(var sx = t.minX; sx <= t.maxX; sx += 2){
-        var g2 = gray[sy * W + sx];
-        if(g2 > thr) vals.push(g2);
+  var minRegionArea = W * H * 0.0018;
+  var E = Math.max(2, Math.round(Math.sqrt(W * H) * 0.006));
+  var cur = new Uint8Array(W * H), nxt = new Uint8Array(W * H);
+  for(var q = 0; q < W * H; q++) cur[q] = gray[q] > thr ? 1 : 0;
+  for(var e = 0; e < E; e++){
+    for(var yy = 0; yy < H; yy++){
+      for(var xx = 0; xx < W; xx++){
+        var ii = yy * W + xx;
+        nxt[ii] = (cur[ii] &&
+          xx > 0 && cur[ii-1] && xx < W-1 && cur[ii+1] &&
+          yy > 0 && cur[ii-W] && yy < H-1 && cur[ii+W]) ? 1 : 0;
       }
     }
+    var tmp = cur; cur = nxt; nxt = tmp;
+  }
+  var eroded = cur;
+  var isCore = function(idx){ return eroded[idx] === 1; };
+  var comps = componentsInRect(isCore, W, 0, 0, W, H).filter(function(c){
+    return c.area >= minTileArea * 0.5;
+  }).map(function(c){
+    /* devolvemos la caja a su tamaño real (deshacer la erosión) */
+    c.minX = Math.max(0, c.minX - E); c.minY = Math.max(0, c.minY - E);
+    c.maxX = Math.min(W - 1, c.maxX + E); c.maxY = Math.min(H - 1, c.maxY + E);
+    return c;
+  });
+
+  /* brillo de lo más claro de la foto: una ficha debe ser casi blanca
+     (así el gris de un teclado o una mesa clara no pasa por ficha) */
+  var cum = 0, P95 = 255;
+  for(var b = 255; b >= 0; b--){ cum += hist[b]; if(cum >= W * H * 0.05){ P95 = b; break; } }
+
+  /* fracción de píxeles claros por columna/fila de un rectángulo:
+     las ranuras entre fichas (y la línea del centro) son valles casi sin claro */
+  function colFrac(x0,y0,x1,y1){
+    var out = new Float32Array(x1-x0);
+    for(var x = x0; x < x1; x++){
+      var n = 0;
+      for(var y = y0; y < y1; y++) if(gray[y*W+x] > thr) n++;
+      out[x-x0] = n / (y1-y0);
+    }
+    return out;
+  }
+  function rowFrac(x0,y0,x1,y1){
+    var out = new Float32Array(y1-y0);
+    for(var y = y0; y < y1; y++){
+      var n = 0;
+      for(var x = x0; x < x1; x++) if(gray[y*W+x] > thr) n++;
+      out[y-y0] = n / (x1-x0);
+    }
+    return out;
+  }
+  var VALLEY = 0.16;   /* una fila de puntos nunca baja tanto; una ranura sí */
+  function findValley(frac){
+    var span = frac.length, margin = Math.max(3, Math.round(span * 0.1));
+    var best = -1, bestVal = VALLEY, i = margin;
+    while(i < span - margin){
+      if(frac[i] < VALLEY){
+        var j = i, sum = 0;
+        while(j < span - margin && frac[j] < VALLEY){ sum += frac[j]; j++; }
+        var mean = sum / (j - i);
+        if(mean < bestVal){ bestVal = mean; best = (i + j) >> 1; }
+        i = j;
+      } else i++;
+    }
+    return best;
+  }
+  var regions = [];
+  function splitRegion(x0,y0,x1,y1,depth){
+    /* recorta bordes con poco claro (fondo o esquinas) */
+    var guard = 0;
+    while(guard++ < 40 && x1-x0 > 14 && y1-y0 > 14){
+      var cf = colFrac(x0,y0,x1,y1), rf = rowFrac(x0,y0,x1,y1), moved = false;
+      if(cf[0] < VALLEY){ x0++; moved = true; }
+      if(cf[cf.length-1] < VALLEY){ x1--; moved = true; }
+      if(rf[0] < VALLEY){ y0++; moved = true; }
+      if(rf[rf.length-1] < VALLEY){ y1--; moved = true; }
+      if(!moved) break;
+    }
+    if(x1-x0 < 14 || y1-y0 < 14) return;
+    if(depth <= 8){
+      var tryCols = (x1-x0) >= (y1-y0);
+      for(var k = 0; k < 2; k++){
+        if(tryCols){
+          var vx = findValley(colFrac(x0,y0,x1,y1));
+          if(vx >= 0){ splitRegion(x0,y0,x0+vx,y1,depth+1); splitRegion(x0+vx+1,y0,x1,y1,depth+1); return; }
+        }else{
+          var vy = findValley(rowFrac(x0,y0,x1,y1));
+          if(vy >= 0){ splitRegion(x0,y0,x1,y0+vy,depth+1); splitRegion(x0,y0+vy+1,x1,y1,depth+1); return; }
+        }
+        tryCols = !tryCols;
+      }
+    }
+    regions.push([x0,y0,x1,y1]);
+  }
+  comps.forEach(function(c){ splitRegion(c.minX, c.minY, c.maxX + 1, c.maxY + 1, 0); });
+
+  /* 2) validar cada región, separar fichas/mitades pegadas y contar */
+  var allPips = [], tileInfo = [];
+  function processRegion(x0, y0, x1, y1, depth){
+    var bw = x1-x0, bh = y1-y0;
+    if(bw * bh < minRegionArea) return;
+    var aspect = Math.max(bw, bh) / Math.min(bw, bh);
+    if(aspect > 3.8) return;
+    var tw = Math.min(bw, bh);
+    var longSide = Math.max(bw, bh);
+    var tcx = (x0+x1)/2, tcy = (y0+y1)/2;
+
+    /* brillo del hueso de ESTA región (aguanta sombras parciales) */
+    var vals = [], tot = 0, brightN = 0;
+    for(var sy = y0; sy < y1; sy += 2){
+      for(var sx = x0; sx < x1; sx += 2){
+        tot++;
+        var g2 = gray[sy * W + sx];
+        if(g2 > thr){ brightN++; vals.push(g2); }
+      }
+    }
+    if(!tot || brightN / tot < 0.45) return;
     vals.sort(function(a,b){ return a-b; });
-    var bone = vals.length ? vals[vals.length >> 1] : 255;
+    var bone = vals[vals.length >> 1];
+    if(bone < P95 * 0.58) return;   /* demasiado gris: no es una ficha */
+
+    /* ¿hay varias fichas/mitades pegadas aquí? Miramos con un umbral más
+       exigente (82% del hueso): las ranuras y la línea central se apagan,
+       una pequeña erosión corta los puentes de brillo, y cada núcleo
+       claro que quede es una ficha o media ficha. */
+    if(depth < 2){
+      var cutoff = bone * 0.82;
+      var rw = bw, rh = bh;
+      var mA = new Uint8Array(rw * rh), mB = new Uint8Array(rw * rh);
+      for(var ry = 0; ry < rh; ry++)
+        for(var rx = 0; rx < rw; rx++)
+          mA[ry*rw+rx] = gray[(y0+ry)*W + x0+rx] > cutoff ? 1 : 0;
+      for(var e2 = 0; e2 < 2; e2++){
+        for(ry = 0; ry < rh; ry++){
+          for(rx = 0; rx < rw; rx++){
+            var li = ry*rw+rx;
+            mB[li] = (mA[li] && rx>0 && mA[li-1] && rx<rw-1 && mA[li+1] &&
+                      ry>0 && mA[li-rw] && ry<rh-1 && mA[li+rw]) ? 1 : 0;
+          }
+        }
+        var mT = mA; mA = mB; mB = mT;
+      }
+      var isCore2 = function(idx){
+        var gx = idx % W, gy = (idx - gx) / W;
+        return mA[(gy-y0)*rw + (gx-x0)] === 1;
+      };
+      var cores = componentsInRect(isCore2, W, x0, y0, x1, y1).filter(function(c){
+        return c.area >= minRegionArea * 0.35;
+      });
+      if(cores.length >= 2){
+        cores.forEach(function(c){
+          processRegion(Math.max(x0, c.minX-3), Math.max(y0, c.minY-3),
+                        Math.min(x1, c.maxX+4), Math.min(y1, c.maxY+4), depth+1);
+        });
+        return;
+      }
+    }
     var pipThr = Math.min(thr, bone - Math.max(35, bone * 0.25));
     var isDarkLocal = function(idx){ return gray[idx] < pipThr; };
 
     var pips = componentsInRect(isDarkLocal, W, x0, y0, x1, y1).filter(function(p){
-      if(p.touchesBorder) return false;        /* el fondo toca el borde */
+      if(p.touchesBorder) return false;        /* el fondo/ranura toca el borde */
       var pw = p.maxX - p.minX + 1, ph = p.maxY - p.minY + 1;
-      var aspect = Math.max(pw, ph) / Math.min(pw, ph);
+      var pAspect = Math.max(pw, ph) / Math.min(pw, ph);
       var fill = p.area / (pw * ph);
-      var rel = p.area / (tw * tw);
-      /* el clavito/remache del centro de la ficha no es un punto */
+      if(p.area < 8 || p.area > bw * bh * 0.05) return false;
+      /* redondo-ish; el fill bajo permite puntos "dona" (brillo en el centro).
+         La línea del centro y el clavito pegado a ella caen por alargados. */
+      if(pAspect > 2.6 || fill < 0.28) return false;
+      /* un punto de verdad está rodeado de hueso claro: muestreamos un
+         anillo a su alrededor (el clavito falla porque la línea negra
+         le cruza el anillo; lo que esté sobre fondo oscuro también falla) */
       var pcx = (p.minX + p.maxX) / 2, pcy = (p.minY + p.maxY) / 2;
-      var dCentro = Math.sqrt((pcx-tcx)*(pcx-tcx) + (pcy-tcy)*(pcy-tcy));
-      if(dCentro < longSide * 0.09) return false;
-      return p.area >= 6 && rel >= 0.004 && rel <= 0.1 && aspect <= 2.4 && fill >= 0.42;
+      var pr = (pw + ph) / 4, pts = 12, ok = 0;
+      for(var k = 0; k < pts; k++){
+        var ang = k * Math.PI * 2 / pts;
+        var px = Math.round(pcx + Math.cos(ang) * pr * 1.7);
+        var py = Math.round(pcy + Math.sin(ang) * pr * 1.7);
+        if(px >= 1 && py >= 1 && px < W-1 && py < H-1 && gray[py*W+px] > pipThr) ok++;
+      }
+      if(ok / pts < 0.6) return false;
+      p.fillR = fill; p.aspectR = pAspect;
+      return true;
     });
-    tileInfo.push({box:[t.minX, t.minY, bw, bh], pips:pips});
+    tileInfo.push({box:[x0, y0, bw, bh], pips:pips});
     allPips = allPips.concat(pips);
-  });
-
-  /* 3) puntos pegados: si una mancha es mucho más grande que la mediana,
-        vale por dos (o más) */
-  var median = 0;
-  if(allPips.length){
-    var areas = allPips.map(function(p){ return p.area; }).sort(function(a,b){ return a-b; });
-    median = areas[areas.length >> 1];
   }
+  regions.forEach(function(r){ processRegion(r[0], r[1], r[2], r[3], 0); });
+
+  /* 3) tamaño típico de punto POR FICHA (fichas cercanas y lejanas tienen
+        puntos de distinto tamaño): lo muy distinto a sus vecinos se
+        descarta, lo doble de grande vale por 2 */
   var total = 0;
   tileInfo.forEach(function(t){
+    var confident = t.pips.filter(function(p){ return p.fillR >= 0.5 && p.aspectR <= 1.6; });
+    var base = (confident.length >= 2 ? confident : t.pips)
+      .map(function(p){ return p.area; }).sort(function(a,b){ return a-b; });
+    var median = base.length ? base[base.length >> 1] : 0;
     t.count = 0;
-    t.pips.forEach(function(p){
-      p.units = median ? Math.max(1, Math.round(p.area / median)) : 1;
+    t.pips = t.pips.filter(function(p){
+      var ratio = median ? p.area / median : 1;
+      if(ratio < 0.35 || ratio > 3.4) return false;
+      p.units = Math.min(3, Math.max(1, Math.round(ratio)));
       t.count += p.units;
+      return true;
     });
     total += t.count;
   });
@@ -961,7 +1107,16 @@ function analyzeDominoes(source, srcW, srcH){
     ctx.fillText(String(t.count), t.box[0] + 4, Math.max(20, t.box[1] - 6));
   });
 
-  return {total: total, tiles: tileInfo.length, dataUrl: canvas.toDataURL('image/jpeg', 0.8)};
+  return {
+    total: total,
+    tiles: tileInfo.length,
+    counts: tileInfo.map(function(t){ return t.count; }),
+    boxes: tileInfo.map(function(t){ return t.box; }),
+    pipsXY: tileInfo.map(function(t){ return t.pips.map(function(p){
+      return [Math.round((p.minX+p.maxX)/2), Math.round((p.minY+p.maxY)/2), p.units]; }); }),
+    scale: scale,
+    dataUrl: canvas.toDataURL('image/jpeg', 0.8)
+  };
 }
 window.__analyzeForTest = analyzeDominoes;
 
@@ -1039,8 +1194,8 @@ function showCountSheet(res){
   if(res && res.tiles > 0){
     $('count-img').src = res.dataUrl;
     $('count-img').style.display = '';
-    $('count-hint').textContent = 'Conté ' + res.total + ' punto' + (res.total===1?'':'s') + ' en ' +
-      res.tiles + ' ficha' + (res.tiles===1?'':'s') + '. Revisa la foto y corrige si hace falta.';
+    $('count-hint').textContent = 'Conté ' + res.total + ' punto' + (res.total===1?'':'s') +
+      '. Revisa la foto marcada y corrige si hace falta.';
     countValue = res.total;
   }else{
     $('count-img').style.display = 'none';
