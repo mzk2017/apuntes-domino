@@ -1156,9 +1156,14 @@ function cvFindBlobs(canvas){
     var minDist = Math.max(8, minR * 2);
     cv.HoughCircles(gr, circles, cv.HOUGH_GRADIENT, 1, minDist, 100, 24, minR, maxR);
     for(var i = 0; i < circles.cols; i++){
-      blobs.push({x: circles.data32F[i*3], y: circles.data32F[i*3+1],
-                  r: circles.data32F[i*3+2],
-                  area: Math.PI * circles.data32F[i*3+2] * circles.data32F[i*3+2]});
+      var sx = circles.data32F[i*3], sy2 = circles.data32F[i*3+1], sr = circles.data32F[i*3+2];
+      var ya = false;
+      for(var k2 = 0; k2 < blobs.length && !ya; k2++){
+        var dxx = sx - blobs[k2].x, dyy = sy2 - blobs[k2].y;
+        var dl = Math.min(9, (sr + blobs[k2].r) * 0.5);
+        if(dxx*dxx + dyy*dyy < dl*dl) ya = true;   /* mismo punto visto dos veces */
+      }
+      if(!ya) blobs.push({x: sx, y: sy2, r: sr, area: Math.PI * sr * sr});
     }
     /* segunda pasada más sensible: rescata puntos desteñidos. Sus
        hallazgos se marcan como "débiles" y solo cuentan si miden lo
@@ -1171,7 +1176,7 @@ function cvFindBlobs(canvas){
       var dup = false;
       for(var j = 0; j < blobs.length && !dup; j++){
         var ddx = wx - blobs[j].x, ddy = wy - blobs[j].y;
-        var dlim = (wr + blobs[j].r) * 0.5;
+        var dlim = (wr + blobs[j].r) * 0.8;
         if(ddx*ddx + ddy*ddy < dlim*dlim) dup = true;
       }
       if(!dup) blobs.push({x: wx, y: wy, r: wr, area: Math.PI*wr*wr, weak: true});
@@ -1418,17 +1423,24 @@ function analyzeDominoes(source, srcW, srcH){
         if(b.x <= x0 + 2 || b.x >= x1 - 2 || b.y <= y0 + 2 || b.y >= y1 - 2) return;
         /* oscuro respecto al hueso: centro o alrededor del centro (los
            puntos con brillo especular son "donas") */
-        var dark = false;
+        var darkN = 0, sumS = 0, nS = 0;
         [[0,0],[0.55,0],[-0.55,0],[0,0.55],[0,-0.55]].forEach(function(o){
           var gx = Math.round(b.x + o[0]*b.r), gy = Math.round(b.y + o[1]*b.r);
-          if(gx >= 0 && gy >= 0 && gx < W && gy < H && gray[gy*W+gx] < pipThr) dark = true;
+          if(gx >= 0 && gy >= 0 && gx < W && gy < H){
+            var gv = gray[gy*W+gx];
+            sumS += gv; nS++;
+            if(gv < pipThr) darkN++;
+          }
         });
-        if(!dark) return;
+        if(darkN === 0) return;
+        var meanS = nS ? sumS / nS : 255;
         rawPips.push({
           minX: Math.max(x0, Math.round(b.x - b.r)), maxX: Math.min(x1-1, Math.round(b.x + b.r)),
           minY: Math.max(y0, Math.round(b.y - b.r)), maxY: Math.min(y1-1, Math.round(b.y + b.r)),
           area: b.area,
           weak: !!b.weak,
+          meanS: meanS,
+          darkRef: bone - (bone - pipThr) * 0.25,
           touchesBorder: (b.x - b.r) < x0 + 1 || (b.x + b.r) > x1 - 1 ||
                          (b.y - b.r) < y0 + 1 || (b.y + b.r) > y1 - 1
         });
@@ -1470,28 +1482,40 @@ function analyzeDominoes(source, srcW, srcH){
       p.fillR = fill; p.aspectR = pAspect;
       return true;
     });
-    /* el clavito/remache vive EN la línea que divide la ficha. Buscamos
-       en qué eje está la franja central OSCURA de verdad (la división)
-       y quitamos los "puntos" pegados a ella. */
-    if(aspect >= 1.5 && pips.length){
-      var myMid = Math.round((y0 + y1) / 2), mxMid = Math.round((x0 + x1) / 2);
-      var rfm = rowFrac(x0, Math.max(y0, myMid - 1), x1, Math.min(y1, myMid + 2));
-      var cfm = colFrac(Math.max(x0, mxMid - 1), y0, Math.min(x1, mxMid + 2), y1);
-      var mH = 0, mV = 0, k;
-      for(k = 0; k < rfm.length; k++) mH += rfm[k];
-      mH /= (rfm.length || 1);
-      for(k = 0; k < cfm.length; k++) mV += cfm[k];
-      mV /= (cfm.length || 1);
-      /* puede haber línea oscura en ambos ejes (divisoria + ranura entre
-         fichas pegadas): se limpia sobre cada una que exista */
-      if(mH < 0.6){
+    /* los clavitos viven SOBRE líneas oscuras finas (la divisoria de cada
+       ficha o la ranura entre fichas pegadas, estén donde estén). Barrido
+       completo: fila/columna casi sin claro y DELGADA = línea; cualquier
+       "punto" centrado en una de ellas no es un punto. Una fila de puntos
+       de verdad es más gruesa y con más claro, no se toca. */
+    if(pips.length){
+      var rf2 = rowFrac(x0, y0, x1, y1);
+      var cf2 = colFrac(x0, y0, x1, y1);
+      var lineBands = function(frac){
+        var bands = [], i2 = 0;
+        while(i2 < frac.length){
+          if(frac[i2] < 0.45){
+            var j2 = i2;
+            while(j2 < frac.length && frac[j2] < 0.45) j2++;
+            /* una LÍNEA es fina y tiene claro a AMBOS lados (una fila de
+               puntos alineados es gruesa o tiene un lado aún oscuro) */
+            if(j2 - i2 <= 10){
+              var la = frac[Math.max(0, i2 - 5)], lb = frac[Math.min(frac.length - 1, j2 + 4)];
+              if(la > 0.6 && lb > 0.6) bands.push((i2 + j2) / 2);
+            }
+            i2 = j2;
+          } else i2++;
+        }
+        return bands;
+      };
+      var rowBands = lineBands(rf2), colBands = lineBands(cf2);
+      if(rowBands.length || colBands.length){
         pips = pips.filter(function(p){
-          return Math.abs((p.minY + p.maxY) / 2 - myMid) >= bh * 0.05;
-        });
-      }
-      if(mV < 0.6){
-        pips = pips.filter(function(p){
-          return Math.abs((p.minX + p.maxX) / 2 - mxMid) >= bw * 0.05;
+          var py = (p.minY + p.maxY) / 2 - y0, px = (p.minX + p.maxX) / 2 - x0;
+          for(var b2 = 0; b2 < rowBands.length; b2++)
+            if(Math.abs(py - rowBands[b2]) < 9) return false;
+          for(b2 = 0; b2 < colBands.length; b2++)
+            if(Math.abs(px - colBands[b2]) < 9) return false;
+          return true;
         });
       }
     }
@@ -1518,6 +1542,11 @@ function analyzeDominoes(source, srcW, srcH){
          APRETADO entre 2+ puntos fuertes (eso es una sombra-hueco) */
       if(p.weak){
         if(ratio < 0.6 || ratio > 1.45) return false;
+        /* fantasma sobre el hueso: su interior es claro; un punto
+           desteñido de verdad es grisáceo */
+        if(p.meanS !== undefined && p.meanS > p.darkRef) return false;
+        /* un rescate débil solo vale AISLADO: los fantasmas nacen
+           apretados entre puntos de verdad */
         var pcx = (p.minX+p.maxX)/2, pcy = (p.minY+p.maxY)/2;
         var prr = (p.maxX-p.minX+p.maxY-p.minY+2)/4;
         var vecinos = 0;
@@ -1525,10 +1554,10 @@ function analyzeDominoes(source, srcW, srcH){
           if(o === p || o.weak) return;
           var ocx = (o.minX+o.maxX)/2, ocy = (o.minY+o.maxY)/2;
           var orr = (o.maxX-o.minX+o.maxY-o.minY+2)/4;
-          var dx = pcx-ocx, dy = pcy-ocy, lim = (prr+orr)*0.95;
+          var dx = pcx-ocx, dy = pcy-ocy, lim = (prr+orr)*1.3;
           if(dx*dx + dy*dy < lim*lim) vecinos++;
         });
-        if(vecinos >= 2) return false;
+        if(vecinos >= 1) return false;
       }
       /* con OpenCV cada círculo ya viene separado: nunca vale por 2 */
       p.units = (!cvBlobs && ratio >= 1.7) ? Math.min(3, Math.round(ratio)) : 1;
