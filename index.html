@@ -265,6 +265,7 @@
   </div>
   <div style="flex:1;overflow-y:auto;min-height:0">
     <button class="big-btn" id="home-play" style="margin:4px 0 10px">🁢 Jugar</button>
+    <button class="ghost-link hidden" id="home-new" style="margin:0 0 10px;width:100%">✨ Partida nueva</button>
     <button class="ghost-link" id="btn-history-home" style="margin:0;width:100%">📜 Historial de partidas</button>
 
     <p class="set-section" id="t-lang">Idioma</p>
@@ -485,7 +486,7 @@ var I18N = {
     ph1:'Ej: Los Tigres', ph2:'Ej: Los Leones',
     playTo:'Jugamos a…', otherGoal:'Otra meta (ej: 250)',
     play:'¡A jugar!', historyBtn:'📜 Historial de partidas', settingsBtn:'🏠 Inicio',
-    home:'Inicio', playNow:'🁢 Jugar', continueGame:'🁢 Seguir la partida',
+    home:'Inicio', playNow:'🁢 Jugar', continueGame:'🁢 Seguir la partida', newGame:'✨ Partida nueva',
     goal:'Meta', add:'+ Anotar', noPoints:'Sin puntos todavía',
     pointsFor:'Puntos para', sum:'Sumar', cancel:'Cancelar', close:'✕ Cerrar',
     menu:'Menú', again:'🁢 Otra partida (mismos jugadores)', changeAll:'👥 Cambiar jugadores y meta',
@@ -521,7 +522,7 @@ var I18N = {
     ph1:'e.g. The Tigers', ph2:'e.g. The Lions',
     playTo:'Playing to…', otherGoal:'Other goal (e.g. 250)',
     play:'Let’s play!', historyBtn:'📜 Game history', settingsBtn:'🏠 Home',
-    home:'Home', playNow:'🁢 Play', continueGame:'🁢 Continue game',
+    home:'Home', playNow:'🁢 Play', continueGame:'🁢 Continue game', newGame:'✨ New game',
     goal:'Goal', add:'+ Add points', noPoints:'No points yet',
     pointsFor:'Points for', sum:'Add', cancel:'Cancel', close:'✕ Close',
     menu:'Menu', again:'🁢 Play again (same players)', changeAll:'👥 Change players & goal',
@@ -589,6 +590,8 @@ function applySettings(){
   $('t-histtitle').textContent = t('histTitle');
   $('btn-hist-back').textContent = t('back');
   $('home-play').textContent = state.phase === 'game' ? t('continueGame') : t('playNow');
+  $('home-new').textContent = t('newGame');
+  $('home-new').classList.toggle('hidden', state.phase !== 'game');
   $('btn-history-home').textContent = t('historyBtn');
   $('hist-stats-title').textContent = t('record');
   $('t-games').textContent = t('games');
@@ -1628,6 +1631,7 @@ function showSettings(){
   $('scr-history').classList.add('hidden');
   refreshSetCalibStatus();
   $('home-play').textContent = state.phase === 'game' ? t('continueGame') : t('playNow');
+  $('home-new').classList.toggle('hidden', state.phase !== 'game');
   $('scr-settings').classList.remove('hidden');
 }
 $('btn-home').addEventListener('click', showSettings);
@@ -1635,6 +1639,10 @@ $('btn-settings-setup').addEventListener('click', showSettings);
 $('home-play').addEventListener('click', function(){
   $('scr-settings').classList.add('hidden');
   render();
+});
+$('home-new').addEventListener('click', function(){
+  $('scr-settings').classList.add('hidden');
+  newPlayers();
 });
 $('btn-history-home').addEventListener('click', function(){
   $('scr-settings').classList.add('hidden');
