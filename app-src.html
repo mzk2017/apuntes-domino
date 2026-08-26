@@ -1284,10 +1284,23 @@ $('learn-reset').addEventListener('click', function(){
   $('learn-status').textContent = t('learnCleared');
 });
 
-/* compartir la app con amigos */
+/* compartir la app con amigos (con la imagen del QR si el teléfono lo permite) */
 var APP_URL = 'https://mzk2017.github.io/apuntes-domino/';
+function qrFile(){
+  try{
+    var img = document.querySelector('#scr-settings img');
+    var b64 = img.src.split(',')[1];
+    var bin = atob(b64), arr = new Uint8Array(bin.length);
+    for(var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new File([arr], 'apuntes-domino-qr.png', {type: 'image/png'});
+  }catch(e){ return null; }
+}
 $('btn-share').addEventListener('click', function(){
-  if(navigator.share){
+  var f = qrFile();
+  if(navigator.share && f && navigator.canShare && navigator.canShare({files: [f]})){
+    navigator.share({ title: 'Apuntes Dominó', text: t('shareText') + ' ' + APP_URL, files: [f] })
+      .catch(function(){});
+  }else if(navigator.share){
     navigator.share({ title: 'Apuntes Dominó', text: t('shareText'), url: APP_URL })
       .catch(function(){});
   }else if(navigator.clipboard && navigator.clipboard.writeText){
