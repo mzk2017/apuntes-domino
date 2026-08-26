@@ -255,6 +255,8 @@
     <button class="big-btn" id="home-play" style="margin:4px 0 10px">🁢 Jugar</button>
     <button class="ghost-link hidden" id="home-new" style="margin:0 0 10px;width:100%">✨ Partida nueva</button>
     <button class="ghost-link" id="btn-history-home" style="margin:0;width:100%">📜 Historial de partidas</button>
+    <button class="ghost-link hidden" id="btn-install" style="margin:10px 0 0;width:100%;border-color:var(--gold);color:var(--gold)">📲 Instalar la app en este teléfono</button>
+    <p class="set-note hidden" id="install-steps" style="line-height:1.5"></p>
 
     <p class="set-section" id="t-lang">Idioma</p>
     <div class="seg-row">
@@ -536,6 +538,9 @@ var I18N = {
     fullDone:'✅ Conté {n} de {e} puntos del juego completo y me ajusté con eso.',
     fullRetry:'Quedó lejos del total — intenta otra foto con mejor luz o más de cerca.',
     learnSec:'Aprendizaje del contador', learnReset:'Reiniciar aprendizaje',
+    installBtn:'📲 Instalar la app en este teléfono',
+    iosSteps:'En iPhone: abre la app en Safari, toca el botón de compartir (el cuadrito con la flecha ↑, abajo) y elige "Agregar a inicio". Te queda el iconito 🁢 y abre sin navegador.',
+    androidSteps:'En Android: abre la app en Chrome, toca los tres puntitos ⋮ arriba a la derecha y elige "Agregar a pantalla principal".',
     shareSec:'Compartir la app', shareBtn:'Enviar el enlace a un amigo',
     shareCopied:'✅ Enlace copiado — pégalo en WhatsApp o donde quieras.',
     qrNote:'…o que escaneen este código con la cámara del teléfono',
@@ -585,6 +590,9 @@ var I18N = {
     fullDone:'✅ I counted {n} of {e} pips of the full set and tuned myself with it.',
     fullRetry:'Still far from the total — try another photo with better light or closer.',
     learnSec:'Counter learning', learnReset:'Reset learning',
+    installBtn:'📲 Install the app on this phone',
+    iosSteps:'On iPhone: open the app in Safari, tap the share button (the square with the ↑ arrow, at the bottom) and choose "Add to Home Screen". You get the 🁢 icon and it opens without the browser.',
+    androidSteps:'On Android: open the app in Chrome, tap the three dots ⋮ at the top right and choose "Add to Home screen".',
     shareSec:'Share the app', shareBtn:'Send the link to a friend',
     shareCopied:'✅ Link copied — paste it in WhatsApp or anywhere.',
     qrNote:'…or have them scan this code with the phone camera',
@@ -1282,6 +1290,42 @@ function registerFeedback(detected, corrected, rawThumb){
 $('learn-reset').addEventListener('click', function(){
   try{ localStorage.removeItem(FB_KEY); }catch(e){}
   $('learn-status').textContent = t('learnCleared');
+});
+
+/* instalación con un toque (Android) o guía (iPhone) */
+var deferredInstall = null;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  deferredInstall = e;
+  refreshInstallUI();
+});
+function isStandalone(){
+  return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) ||
+         window.navigator.standalone === true;
+}
+function isIOS(){ return /iPhone|iPad|iPod/.test(navigator.userAgent); }
+function refreshInstallUI(){
+  var btn = $('btn-install');
+  if(!btn) return;
+  if(isStandalone()){
+    btn.classList.add('hidden');
+    $('install-steps').classList.add('hidden');
+    return;
+  }
+  btn.textContent = t('installBtn');
+  btn.classList.remove('hidden');
+}
+$('btn-install').addEventListener('click', function(){
+  if(deferredInstall){
+    var p = deferredInstall;
+    deferredInstall = null;
+    p.prompt();
+    if(p.userChoice) p.userChoice.then(function(){ refreshInstallUI(); });
+    return;
+  }
+  var el = $('install-steps');
+  el.textContent = isIOS() ? t('iosSteps') : t('androidSteps');
+  el.classList.toggle('hidden');
 });
 
 /* compartir la app con amigos (con la imagen del QR si el teléfono lo permite) */
@@ -2042,6 +2086,7 @@ function showSettings(){
   $('scr-game').classList.add('hidden');
   $('scr-history').classList.add('hidden');
   refreshSetCalibStatus();
+  refreshInstallUI();
   $('home-play').textContent = state.phase === 'game' ? t('continueGame') : t('playNow');
   $('home-new').classList.toggle('hidden', state.phase !== 'game');
   $('scr-settings').classList.remove('hidden');
