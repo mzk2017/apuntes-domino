@@ -1,5 +1,8 @@
 # Apuntes Dominó 🁢
 
+> © 2026 · Todos los derechos reservados. Prohibida su copia, venta o
+> redistribución sin permiso del autor. Ver [LICENSE](LICENSE).
+
 App web para anotar los puntos del dominó: dos equipos, meta de 100/150/200 puntos,
 sonido de ganador, ¡pollona con gallina! 🐔, contador de fichas por foto e historial de partidas.
 
