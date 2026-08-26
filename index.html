@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
-<title>Apuntes Dominó</title>
+<title>Domino Cubano Counter</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <style>
@@ -232,7 +232,7 @@
     <div class="tile"><div class="half"><span class="pip p1"></span><span class="pip p2"></span><span class="pip p3"></span><span class="pip p4"></span><span class="pip p5"></span></div><div class="half"><span class="pip p1"></span><span class="pip p5"></span></div></div>
     <div class="tile"><div class="half"><span class="pip p3"></span></div><div class="half"><span class="pip p1"></span><span class="pip p2"></span><span class="pip p4"></span><span class="pip p5"></span></div></div>
   </div>
-  <h1 class="title">Apuntes Dominó</h1>
+  <h1 class="title">Domino Cubano Counter</h1>
   <p class="subtitle">La libreta de puntos para tu mesa</p>
 
   <div class="field">
@@ -310,7 +310,7 @@
       <p class="set-note" id="t-qrnote">…o que escaneen este código con la cámara del teléfono</p>
     </div>
     <p class="set-note" id="t-installnote" style="line-height:1.5">📱 Para el iconito 🁢 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".</p>
-    <p class="set-note" style="text-align:center;margin-top:22px;opacity:.7">© 2026 Apuntes Dominó · Todos los derechos reservados<br>Prohibida su venta o redistribución</p>
+    <p class="set-note" style="text-align:center;margin-top:22px;opacity:.7">© 2026 Domino Cubano Counter · Todos los derechos reservados<br>Prohibida su venta o redistribución</p>
   </div>
 </div>
 
@@ -558,7 +558,7 @@ var I18N = {
     shareCopied:'✅ Enlace copiado — pégalo en WhatsApp o donde quieras.',
     qrNote:'…o que escaneen este código con la cámara del teléfono',
     installNote:'📱 Para el iconito 🁢 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".',
-    shareText:'Apuntes Dominó — la libreta de puntos para el dominó 🁢🐔',
+    shareText:'Domino Cubano Counter — la libreta de puntos para el dominó 🁢🐔',
     learnNone:'Aún sin correcciones. Cuando corrijas un conteo con − / +, la app aprende sola.',
     learnStatus:'📚 {n} correcciones aprendidas · ahora cuento: ', learnCleared:'Aprendizaje reiniciado.',
     sensMore:'con más sensibilidad', sensLess:'con más cuidado', sensNormal:'normal'
@@ -610,7 +610,7 @@ var I18N = {
     shareCopied:'✅ Link copied — paste it in WhatsApp or anywhere.',
     qrNote:'…or have them scan this code with the phone camera',
     installNote:'📱 For the 🁢 icon on the home screen: Android (Chrome): ⋮ → "Add to Home screen". iPhone (Safari): share button → "Add to Home Screen".',
-    shareText:'Apuntes Dominó — the score pad for dominoes 🁢🐔',
+    shareText:'Domino Cubano Counter — the score pad for dominoes 🁢🐔',
     learnNone:'No corrections yet. When you fix a count with − / +, the app learns by itself.',
     learnStatus:'📚 {n} corrections learned · now counting: ', learnCleared:'Learning reset.',
     sensMore:'more sensitively', sensLess:'more carefully', sensNormal:'normally'
@@ -1355,10 +1355,10 @@ function qrFile(){
 $('btn-share').addEventListener('click', function(){
   var f = qrFile();
   if(navigator.share && f && navigator.canShare && navigator.canShare({files: [f]})){
-    navigator.share({ title: 'Apuntes Dominó', text: t('shareText') + ' ' + APP_URL, files: [f] })
+    navigator.share({ title: 'Domino Cubano Counter', text: t('shareText') + ' ' + APP_URL, files: [f] })
       .catch(function(){});
   }else if(navigator.share){
-    navigator.share({ title: 'Apuntes Dominó', text: t('shareText'), url: APP_URL })
+    navigator.share({ title: 'Domino Cubano Counter', text: t('shareText'), url: APP_URL })
       .catch(function(){});
   }else if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(APP_URL).then(function(){

@@ -1,4 +1,4 @@
-# Apuntes Dominó 🁢
+# Domino Cubano Counter 🁢
 
 > © 2026 · Todos los derechos reservados. Prohibida su copia, venta o
 > redistribución sin permiso del autor. Ver [LICENSE](LICENSE).

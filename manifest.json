@@ -1,7 +1,7 @@
 {
-  "name": "Apuntes Dominó",
-  "short_name": "Dominó",
-  "description": "Libreta de puntos para el juego de dominó",
+  "name": "Domino Cubano Counter",
+  "short_name": "Domino Cubano",
+  "description": "Libreta de puntos para el dominó cubano",
   "start_url": ".",
   "display": "standalone",
   "orientation": "portrait",
