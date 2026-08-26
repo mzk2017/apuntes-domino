@@ -368,6 +368,17 @@
       <button class="menu-btn" id="calib-live">📸 Usar la cámara</button>
       <label class="menu-btn" for="cam-input" style="display:block" id="calib-file-label">🖼️ Tomar foto o elegir de la galería</label>
     </div>
+
+    <p class="set-section" id="t-fullsec" style="margin-top:16px">⭐ Calibración completa (la mejor)</p>
+    <p class="count-hint" id="t-fullhelp">Pon TODAS las fichas del juego boca arriba en la mesa, en filas, y tírales una foto. Como la app sabe cuántos puntos tiene el juego completo, se ajusta sola hasta contar exacto.</p>
+    <div class="seg-row" style="margin:10px 0">
+      <button class="seg-btn sel" data-set="6" id="set-d6">Doble-6 · 168 pts</button>
+      <button class="seg-btn" data-set="9" id="set-d9">Doble-9 · 495 pts</button>
+    </div>
+    <div class="menu-list">
+      <button class="menu-btn" id="fullcalib-live">📸 Usar la cámara</button>
+      <label class="menu-btn" for="cam-input" style="display:block" id="fullcalib-file">🖼️ Tomar foto o elegir de la galería</label>
+    </div>
     <p class="count-hint" id="calib-msg" style="margin-top:10px"></p>
     <button class="kp-cancel" id="calib-cancel">Cerrar</button>
   </div>
@@ -509,6 +520,10 @@ var I18N = {
     henSec:'Sonido de la pollona', hen0:'🐔 Gallina escandalosa', hen1:'🐔 Cacareo corto', hen2:'🐓 Gallo',
     calibSec:'Calibración de la cámara', calibNow:'Calibrar con tus fichas', calibClear:'Borrar calibración',
     calibCleared:'Calibración borrada.',
+    fullSec:'⭐ Calibración completa (la mejor)',
+    fullHelp:'Pon TODAS las fichas del juego boca arriba en la mesa, en filas, y tírales una foto. Como la app sabe cuántos puntos tiene el juego completo, se ajusta sola hasta contar exacto.',
+    fullDone:'✅ Conté {n} de {e} puntos del juego completo y me ajusté con eso.',
+    fullRetry:'Quedó lejos del total — intenta otra foto con mejor luz o más de cerca.',
     learnSec:'Aprendizaje del contador', learnReset:'Reiniciar aprendizaje',
     learnNone:'Aún sin correcciones. Cuando corrijas un conteo con − / +, la app aprende sola.',
     learnStatus:'📚 {n} correcciones aprendidas · ahora cuento: ', learnCleared:'Aprendizaje reiniciado.',
@@ -549,6 +564,10 @@ var I18N = {
     henSec:'Pollona sound', hen0:'🐔 Loud hen', hen1:'🐔 Quick cackle', hen2:'🐓 Rooster',
     calibSec:'Camera calibration', calibNow:'Calibrate with your tiles', calibClear:'Clear calibration',
     calibCleared:'Calibration cleared.',
+    fullSec:'⭐ Full calibration (the best)',
+    fullHelp:'Place ALL the tiles of the set face up on the table, in rows, and take one photo. Since the app knows the total pips of a full set, it tunes itself until the count is exact.',
+    fullDone:'✅ I counted {n} of {e} pips of the full set and tuned myself with it.',
+    fullRetry:'Still far from the total — try another photo with better light or closer.',
     learnSec:'Counter learning', learnReset:'Reset learning',
     learnNone:'No corrections yet. When you fix a count with − / +, the app learns by itself.',
     learnStatus:'📚 {n} corrections learned · now counting: ', learnCleared:'Learning reset.',
@@ -625,6 +644,10 @@ function applySettings(){
   $('t-calibclear').textContent = t('calibClear');
   $('t-learnsec').textContent = t('learnSec');
   $('t-learnreset').textContent = t('learnReset');
+  $('t-fullsec').textContent = t('fullSec');
+  $('t-fullhelp').textContent = t('fullHelp');
+  $('fullcalib-live').textContent = t('camLive').replace(' aquí mismo','').replace(' right here','');
+  $('fullcalib-file').textContent = t('camFile');
   refreshSetCalibStatus();
   refreshLearnStatus();
 }
@@ -1239,6 +1262,7 @@ $('learn-reset').addEventListener('click', function(){
 /* calibración guardada: proporción punto/ficha aprendida de una muestra */
 var CALIB_KEY = 'apuntes-domino-calib';
 var calibrating = false;
+var overrideSens = null;   /* usado por la calibración completa para probar sensibilidades */
 function loadCalib(){
   try{
     var c = JSON.parse(localStorage.getItem(CALIB_KEY));
@@ -1295,7 +1319,7 @@ function analyzeDominoes(source, srcW, srcH){
   var isDark = function(idx){ return gray[idx] <= thr; };
 
   /* sensibilidad aprendida de las correcciones del usuario */
-  var sens = loadFB().s || 50;
+  var sens = overrideSens !== null ? overrideSens : (loadFB().s || 50);
   var RING = 0.6 - (sens - 50) / 400;
 
   /* con OpenCV listo, los candidatos a punto salen de su detector adaptativo */
@@ -1628,7 +1652,7 @@ function analyzeDominoes(source, srcW, srcH){
   /* 4) las fichas van una al lado de la otra: nos quedamos con la banda
         (grupo de regiones a la misma altura) que más puntos tenga y
         descartamos lo demás (dibujos de la mesa, objetos sueltos) */
-  if(tileInfo.length > 1){
+  if(tileInfo.length > 1 && !calibrating){   /* al calibrar con TODO el juego hay varias filas: no se descarta ninguna */
     var groups = [];
     tileInfo.forEach(function(t){
       var y1t = t.box[1], y2t = t.box[1] + t.box[3], placed = false;
@@ -1751,6 +1775,7 @@ $('ov-camchoice').addEventListener('click', function(e){ if(e.target === this) t
 function openCalibSheet(){
   loadCV();
   calibMode = true;
+  calibKind = 'one';
   $('calib-msg').textContent = '';
   $('calib-live').classList.toggle('hidden', !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
   $('ov-calib').classList.remove('hidden');
@@ -1763,7 +1788,53 @@ $('set-calib-clear').addEventListener('click', function(){
 $('calib-cancel').addEventListener('click', function(){ calibMode = false; $('ov-calib').classList.add('hidden'); });
 $('ov-calib').addEventListener('click', function(e){ if(e.target === this){ calibMode = false; this.classList.add('hidden'); } });
 
+/* --- calibración COMPLETA: foto de todo el juego, total conocido --- */
+var calibKind = 'one';           /* 'one' = una ficha, 'full' = juego completo */
+var fullSet = 6;                 /* doble-6 (168 pts) o doble-9 (495 pts) */
+var SET_TOTALS = {6: 168, 9: 495};
+
+function runFullCalibration(source, w, h){
+  var expected = SET_TOTALS[fullSet] || 168;
+  var best = null;
+  calibrating = true;
+  [30, 38, 46, 52, 58, 64, 70].forEach(function(s){
+    overrideSens = s;
+    var r = null;
+    try{ r = analyzeDominoes(source, w, h); }catch(e){}
+    if(r && r.total > 0){
+      var d = Math.abs(r.total - expected);
+      if(!best || d < best.d){ best = {s: s, d: d, r: r}; }
+    }
+  });
+  overrideSens = null;
+  calibrating = false;
+  if(!best){
+    $('calib-msg').textContent = t('calibFail');
+    return;
+  }
+  /* guardar la sensibilidad ganadora */
+  var fb = loadFB();
+  fb.s = best.s;
+  try{ localStorage.setItem(FB_KEY, JSON.stringify(fb)); }catch(e){}
+  /* y la proporción punto/ficha si salió limpia */
+  var ratios = [];
+  best.r.boxes.forEach(function(b, i){
+    if(best.r.pds[i]) ratios.push(best.r.pds[i] / Math.min(b[2], b[3]));
+  });
+  ratios.sort(function(a, b2){ return a - b2; });
+  var pr = ratios.length ? ratios[ratios.length >> 1] : 0;
+  if(pr >= 0.06 && pr <= 0.5){
+    try{ localStorage.setItem(CALIB_KEY, JSON.stringify({pr: pr, when: Date.now()})); }catch(e){}
+  }
+  var pct = Math.round(best.r.total / expected * 100);
+  $('calib-msg').textContent = t('fullDone').replace('{n}', best.r.total).replace('{e}', expected) +
+    (best.d > expected * 0.08 ? ' ' + t('fullRetry') : '');
+  refreshSetCalibStatus();
+  refreshLearnStatus();
+}
+
 function runCalibration(source, w, h){
+  if(calibKind === 'full'){ runFullCalibration(source, w, h); return; }
   var r = null;
   calibrating = true;
   try{ r = analyzeDominoes(source, w, h); }catch(e){}
@@ -1812,7 +1883,16 @@ function startLiveCam(msgEl){
     });
 }
 $('cam-live').addEventListener('click', function(){ startLiveCam('camchoice-msg'); });
-$('calib-live').addEventListener('click', function(){ startLiveCam('calib-msg'); });
+$('calib-live').addEventListener('click', function(){ calibKind = 'one'; startLiveCam('calib-msg'); });
+$('fullcalib-live').addEventListener('click', function(){ calibKind = 'full'; startLiveCam('calib-msg'); });
+$('calib-file-label').addEventListener('click', function(){ calibKind = 'one'; });
+$('fullcalib-file').addEventListener('click', function(){ calibKind = 'full'; });
+document.querySelectorAll('[data-set]').forEach(function(b){
+  b.addEventListener('click', function(){
+    fullSet = parseInt(b.dataset.set, 10);
+    document.querySelectorAll('[data-set]').forEach(function(o){ o.classList.toggle('sel', o === b); });
+  });
+});
 $('cam-close').addEventListener('click', function(){ stopCam(); calibMode = false; });
 $('cam-shutter').addEventListener('click', function(){
   var v = $('cam-video');
