@@ -1156,10 +1156,25 @@ function cvFindBlobs(canvas){
     var minDist = Math.max(8, minR * 2);
     cv.HoughCircles(gr, circles, cv.HOUGH_GRADIENT, 1, minDist, 100, 24, minR, maxR);
     for(var i = 0; i < circles.cols; i++){
-      var x = circles.data32F[i * 3];
-      var y = circles.data32F[i * 3 + 1];
-      var r = circles.data32F[i * 3 + 2];
-      blobs.push({x: x, y: y, r: r, area: Math.PI * r * r});
+      blobs.push({x: circles.data32F[i*3], y: circles.data32F[i*3+1],
+                  r: circles.data32F[i*3+2],
+                  area: Math.PI * circles.data32F[i*3+2] * circles.data32F[i*3+2]});
+    }
+    /* segunda pasada más sensible: rescata puntos desteñidos. Sus
+       hallazgos se marcan como "débiles" y solo cuentan si miden lo
+       mismo que los puntos fuertes. */
+    circles.delete();
+    circles = new cv.Mat();
+    cv.HoughCircles(gr, circles, cv.HOUGH_GRADIENT, 1, minDist, 80, 17, minR, maxR);
+    for(i = 0; i < circles.cols; i++){
+      var wx = circles.data32F[i*3], wy = circles.data32F[i*3+1], wr = circles.data32F[i*3+2];
+      var dup = false;
+      for(var j = 0; j < blobs.length && !dup; j++){
+        var ddx = wx - blobs[j].x, ddy = wy - blobs[j].y;
+        var dlim = (wr + blobs[j].r) * 0.5;
+        if(ddx*ddx + ddy*ddy < dlim*dlim) dup = true;
+      }
+      if(!dup) blobs.push({x: wx, y: wy, r: wr, area: Math.PI*wr*wr, weak: true});
     }
   }catch(e){ blobs = null; }
   [src, gr, circles].forEach(function(m){ try{ if(m) m.delete(); }catch(e){} });
@@ -1189,11 +1204,37 @@ function analyzeDominoes(source, srcW, srcH){
   var data = ctx.getImageData(0, 0, W, H).data;
 
   var gray = new Uint8Array(W * H);
-  var hist = new Uint32Array(256);
   for(var i = 0; i < W * H; i++){
-    var g = (data[i*4] * 3 + data[i*4+1] * 4 + data[i*4+2]) >> 3;
-    gray[i] = g; hist[g]++;
+    gray[i] = (data[i*4] * 3 + data[i*4+1] * 4 + data[i*4+2]) >> 3;
   }
+
+  /* NORMALIZACIÓN DE LUZ: cada píxel se compara con el brillo promedio de
+     su vecindario grande. Así una ficha en un rincón oscuro queda tan
+     "clara" como una ficha a plena luz (fotos con luz dispareja). */
+  var integ = new Float64Array((W + 1) * (H + 1));
+  for(var iy = 0; iy < H; iy++){
+    var rowSum = 0;
+    for(var ix = 0; ix < W; ix++){
+      rowSum += gray[iy * W + ix];
+      integ[(iy + 1) * (W + 1) + ix + 1] = integ[iy * (W + 1) + ix + 1] + rowSum;
+    }
+  }
+  var hw = Math.round(Math.min(W, H) / 2);
+  var norm = new Uint8Array(W * H);
+  for(iy = 0; iy < H; iy++){
+    var ya = Math.max(0, iy - hw), yb = Math.min(H, iy + hw + 1);
+    for(ix = 0; ix < W; ix++){
+      var xa = Math.max(0, ix - hw), xb = Math.min(W, ix + hw + 1);
+      var s = integ[yb * (W + 1) + xb] - integ[ya * (W + 1) + xb]
+            - integ[yb * (W + 1) + xa] + integ[ya * (W + 1) + xa];
+      var mean = s / ((yb - ya) * (xb - xa));
+      var v = gray[iy * W + ix] * 130 / Math.max(30, mean);
+      norm[iy * W + ix] = v > 255 ? 255 : (v < 0 ? 0 : v | 0);
+    }
+  }
+  gray = norm;
+  var hist = new Uint32Array(256);
+  for(i = 0; i < W * H; i++) hist[gray[i]]++;
   var thr = otsu(hist, W * H);
   var isBright = function(idx){ return gray[idx] > thr; };
   var isDark = function(idx){ return gray[idx] <= thr; };
@@ -1299,15 +1340,19 @@ function analyzeDominoes(source, srcW, srcH){
     }
     regions.push([x0,y0,x1,y1]);
   }
+  var DBG = {comps: comps.map(function(c){ return [c.minX, c.minY, c.maxX-c.minX, c.maxY-c.minY, c.area]; }), verdicts: []};
+  window.__dbg = DBG;
   comps.forEach(function(c){ splitRegion(c.minX, c.minY, c.maxX + 1, c.maxY + 1, 0); });
+  DBG.regions = regions.map(function(r){ return [r[0], r[1], r[2]-r[0], r[3]-r[1]]; });
 
   /* 2) validar cada región, separar fichas/mitades pegadas y contar */
   var allPips = [], tileInfo = [];
   function processRegion(x0, y0, x1, y1, depth){
     var bw = x1-x0, bh = y1-y0;
-    if(bw * bh < minRegionArea) return;
+    var dbgBox = [x0, y0, bw, bh];
+    if(bw * bh < minRegionArea){ DBG.verdicts.push([dbgBox, 'area']); return; }
     var aspect = Math.max(bw, bh) / Math.min(bw, bh);
-    if(aspect > 3.8) return;
+    if(aspect > 3.8){ DBG.verdicts.push([dbgBox, 'aspecto']); return; }
     var tw = Math.min(bw, bh);
     var longSide = Math.max(bw, bh);
     var tcx = (x0+x1)/2, tcy = (y0+y1)/2;
@@ -1321,10 +1366,10 @@ function analyzeDominoes(source, srcW, srcH){
         if(g2 > thr){ brightN++; vals.push(g2); }
       }
     }
-    if(!tot || brightN / tot < 0.45) return;
+    if(!tot || brightN / tot < 0.45){ DBG.verdicts.push([dbgBox, 'poco-claro']); return; }
     vals.sort(function(a,b){ return a-b; });
     var bone = vals[vals.length >> 1];
-    if(bone < P95 * 0.58) return;   /* demasiado gris: no es una ficha */
+    if(bone < P95 * 0.58){ DBG.verdicts.push([dbgBox, 'gris']); return; }   /* demasiado gris: no es una ficha */
 
     /* ¿hay varias fichas/mitades pegadas aquí? Miramos con un umbral más
        exigente (82% del hueso): las ranuras y la línea central se apagan,
@@ -1355,6 +1400,7 @@ function analyzeDominoes(source, srcW, srcH){
         return c.area >= minRegionArea * 0.35;
       });
       if(cores.length >= 2){
+        DBG.verdicts.push([dbgBox, 'partida-en-' + cores.length]);
         cores.forEach(function(c){
           processRegion(Math.max(x0, c.minX-3), Math.max(y0, c.minY-3),
                         Math.min(x1, c.maxX+4), Math.min(y1, c.maxY+4), depth+1);
@@ -1382,6 +1428,7 @@ function analyzeDominoes(source, srcW, srcH){
           minX: Math.max(x0, Math.round(b.x - b.r)), maxX: Math.min(x1-1, Math.round(b.x + b.r)),
           minY: Math.max(y0, Math.round(b.y - b.r)), maxY: Math.min(y1-1, Math.round(b.y + b.r)),
           area: b.area,
+          weak: !!b.weak,
           touchesBorder: (b.x - b.r) < x0 + 1 || (b.x + b.r) > x1 - 1 ||
                          (b.y - b.r) < y0 + 1 || (b.y + b.r) > y1 - 1
         });
@@ -1419,6 +1466,7 @@ function analyzeDominoes(source, srcW, srcH){
         if(px >= 1 && py >= 1 && px < W-1 && py < H-1 && gray[py*W+px] > pipThr) ok++;
       }
       if(ok / pts < 0.6) return false;
+      p.ring = ok / pts;
       p.fillR = fill; p.aspectR = pAspect;
       return true;
     });
@@ -1434,16 +1482,20 @@ function analyzeDominoes(source, srcW, srcH){
       mH /= (rfm.length || 1);
       for(k = 0; k < cfm.length; k++) mV += cfm[k];
       mV /= (cfm.length || 1);
-      if(mH < mV && mH < 0.6){
+      /* puede haber línea oscura en ambos ejes (divisoria + ranura entre
+         fichas pegadas): se limpia sobre cada una que exista */
+      if(mH < 0.6){
         pips = pips.filter(function(p){
           return Math.abs((p.minY + p.maxY) / 2 - myMid) >= bh * 0.05;
         });
-      }else if(mV <= mH && mV < 0.6){
+      }
+      if(mV < 0.6){
         pips = pips.filter(function(p){
           return Math.abs((p.minX + p.maxX) / 2 - mxMid) >= bw * 0.05;
         });
       }
     }
+    DBG.verdicts.push([dbgBox, 'ok:' + pips.length]);
     tileInfo.push({box:[x0, y0, bw, bh], pips:pips});
     allPips = allPips.concat(pips);
   }
@@ -1453,6 +1505,7 @@ function analyzeDominoes(source, srcW, srcH){
         puntos de distinto tamaño): lo muy distinto a sus vecinos se
         descarta, lo doble de grande vale por 2 */
   tileInfo.forEach(function(t){
+    var arr = t.pips;
     var confident = t.pips.filter(function(p){ return p.fillR >= 0.5 && p.aspectR <= 1.6; });
     var base = (confident.length >= 2 ? confident : t.pips)
       .map(function(p){ return p.area; }).sort(function(a,b){ return a-b; });
@@ -1461,6 +1514,22 @@ function analyzeDominoes(source, srcW, srcH){
     t.pips = t.pips.filter(function(p){
       var ratio = median ? p.area / median : 1;
       if(ratio < 0.35 || ratio > 3.4) return false;
+      /* un hallazgo débil: debe medir como los fuertes, y no estar
+         APRETADO entre 2+ puntos fuertes (eso es una sombra-hueco) */
+      if(p.weak){
+        if(ratio < 0.6 || ratio > 1.45) return false;
+        var pcx = (p.minX+p.maxX)/2, pcy = (p.minY+p.maxY)/2;
+        var prr = (p.maxX-p.minX+p.maxY-p.minY+2)/4;
+        var vecinos = 0;
+        arr.forEach(function(o){
+          if(o === p || o.weak) return;
+          var ocx = (o.minX+o.maxX)/2, ocy = (o.minY+o.maxY)/2;
+          var orr = (o.maxX-o.minX+o.maxY-o.minY+2)/4;
+          var dx = pcx-ocx, dy = pcy-ocy, lim = (prr+orr)*0.95;
+          if(dx*dx + dy*dy < lim*lim) vecinos++;
+        });
+        if(vecinos >= 2) return false;
+      }
       /* con OpenCV cada círculo ya viene separado: nunca vale por 2 */
       p.units = (!cvBlobs && ratio >= 1.7) ? Math.min(3, Math.round(ratio)) : 1;
       t.count += p.units;
