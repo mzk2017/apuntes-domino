@@ -272,10 +272,26 @@
     <div class="menu-list">
       <button class="menu-btn" id="cam-live">📸 Usar la cámara aquí mismo</button>
       <label class="menu-btn" for="cam-input" style="display:block">🖼️ Tomar foto o elegir de la galería<input type="file" accept="image/*" id="cam-input" class="cam-file"></label>
+      <button class="menu-btn" id="cam-calib">🎯 Calibrar con tus fichas</button>
     </div>
-    <p class="count-hint" style="margin-top:10px">Cuenta mejor con: fondo oscuro, fichas separadas y foto desde arriba con buena luz.</p>
+    <p class="count-hint" style="margin-top:10px">Pon las fichas una al lado de la otra, foto desde arriba con buena luz.</p>
+    <p class="count-hint" id="calib-status"></p>
     <p class="count-hint" id="camchoice-msg"></p>
     <button class="kp-cancel" id="camchoice-cancel">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ CALIBRACIÓN ============ -->
+<div class="overlay hidden" id="ov-calib">
+  <div class="sheet">
+    <p class="sheet-title"><b>🎯 Calibrar</b></p>
+    <p class="count-hint">Pon <b>UNA sola ficha</b> boca arriba en la mesa donde van a jugar y tírale una foto de cerca, desde arriba. La app aprenderá el tamaño de tus puntos y esa luz.</p>
+    <div class="menu-list" style="margin-top:10px">
+      <button class="menu-btn" id="calib-live">📸 Usar la cámara</button>
+      <label class="menu-btn" for="cam-input" style="display:block">🖼️ Tomar foto o elegir de la galería</label>
+    </div>
+    <p class="count-hint" id="calib-msg" style="margin-top:10px"></p>
+    <button class="kp-cancel" id="calib-cancel">Cerrar</button>
   </div>
 </div>
 
@@ -845,8 +861,19 @@ function componentsInRect(test, W, x0, y0, x1, y1){
   return comps;
 }
 
+/* calibración guardada: proporción punto/ficha aprendida de una muestra */
+var CALIB_KEY = 'apuntes-domino-calib';
+var calibrating = false;
+function loadCalib(){
+  try{
+    var c = JSON.parse(localStorage.getItem(CALIB_KEY));
+    return (c && c.pr > 0.05 && c.pr < 0.5) ? c : null;
+  }catch(e){ return null; }
+}
+
 function analyzeDominoes(source, srcW, srcH){
   var MAXD = 1200;
+  var calib = calibrating ? null : loadCalib();
   var scale = Math.min(1, MAXD / Math.max(srcW, srcH));
   var W = Math.max(1, Math.round(srcW * scale));
   var H = Math.max(1, Math.round(srcH * scale));
@@ -1036,6 +1063,15 @@ function analyzeDominoes(source, srcW, srcH){
       var pAspect = Math.max(pw, ph) / Math.min(pw, ph);
       var fill = p.area / (pw * ph);
       if(p.area < 8 || p.area > bw * bh * 0.05) return false;
+      /* tamaño esperado del punto según la ficha (calibrado = exigente;
+         la región puede ser una ficha, media ficha o una fila pegada) */
+      var pd = (pw + ph) / 2;
+      var minSide = Math.min(bw, bh);
+      if(calib){
+        if(pd < calib.pr * minSide * 0.26 || pd > calib.pr * minSide * 1.75) return false;
+      }else{
+        if(pd < minSide * 0.033 || pd > minSide * 0.45) return false;
+      }
       /* redondo-ish; el fill bajo permite puntos "dona" (brillo en el centro).
          La línea del centro y el clavito pegado a ella caen por alargados. */
       if(pAspect > 2.6 || fill < 0.28) return false;
@@ -1062,7 +1098,6 @@ function analyzeDominoes(source, srcW, srcH){
   /* 3) tamaño típico de punto POR FICHA (fichas cercanas y lejanas tienen
         puntos de distinto tamaño): lo muy distinto a sus vecinos se
         descarta, lo doble de grande vale por 2 */
-  var total = 0;
   tileInfo.forEach(function(t){
     var confident = t.pips.filter(function(p){ return p.fillR >= 0.5 && p.aspectR <= 1.6; });
     var base = (confident.length >= 2 ? confident : t.pips)
@@ -1072,12 +1107,45 @@ function analyzeDominoes(source, srcW, srcH){
     t.pips = t.pips.filter(function(p){
       var ratio = median ? p.area / median : 1;
       if(ratio < 0.35 || ratio > 3.4) return false;
-      p.units = Math.min(3, Math.max(1, Math.round(ratio)));
+      p.units = ratio >= 1.7 ? Math.min(3, Math.round(ratio)) : 1;
       t.count += p.units;
       return true;
     });
-    total += t.count;
+    /* diámetro típico de punto en esta región (para calibrar) */
+    var ds = t.pips.map(function(p){
+      return (p.maxX - p.minX + p.maxY - p.minY + 2) / 2;
+    }).sort(function(a,b){ return a-b; });
+    t.pd = ds.length ? ds[ds.length >> 1] : 0;
   });
+
+  /* 4) las fichas van una al lado de la otra: nos quedamos con la banda
+        (grupo de regiones a la misma altura) que más puntos tenga y
+        descartamos lo demás (dibujos de la mesa, objetos sueltos) */
+  if(tileInfo.length > 1){
+    var groups = [];
+    tileInfo.forEach(function(t){
+      var y1t = t.box[1], y2t = t.box[1] + t.box[3], placed = false;
+      for(var gi = 0; gi < groups.length && !placed; gi++){
+        var g = groups[gi];
+        /* misma banda si se solapan o están casi pegadas (mitades de una
+           ficha); solo lo claramente separado queda fuera */
+        var ov = Math.min(y2t, g.y2) - Math.max(y1t, g.y1);
+        if(ov > -0.6 * Math.min(t.box[3], g.y2 - g.y1)){
+          g.items.push(t);
+          g.y1 = Math.min(g.y1, y1t); g.y2 = Math.max(g.y2, y2t);
+          placed = true;
+        }
+      }
+      if(!placed) groups.push({items:[t], y1:y1t, y2:y2t});
+    });
+    groups.forEach(function(g){
+      g.score = g.items.reduce(function(s,t){ return s + t.count; }, 0);
+    });
+    groups.sort(function(a,b){ return b.score - a.score; });
+    if(groups[0].score > 0) tileInfo = groups[0].items;
+  }
+  var total = 0;
+  tileInfo.forEach(function(t){ total += t.count; });
 
   /* 4) foto marcada para que el usuario verifique */
   ctx.lineWidth = Math.max(2, W / 300);
@@ -1102,6 +1170,7 @@ function analyzeDominoes(source, srcW, srcH){
     boxes: tileInfo.map(function(t){ return t.box; }),
     pipsXY: tileInfo.map(function(t){ return t.pips.map(function(p){
       return [Math.round((p.minX+p.maxX)/2), Math.round((p.minY+p.maxY)/2), p.units]; }); }),
+    pds: tileInfo.map(function(t){ return t.pd; }),
     scale: scale,
     dataUrl: canvas.toDataURL('image/jpeg', 0.8)
   };
@@ -1111,15 +1180,57 @@ window.__analyzeForTest = analyzeDominoes;
 /* ---- flujo de la cámara ---- */
 var countValue = 0;
 
-/* el botón 📷 abre el selector: cámara en vivo o archivo */
+/* el botón 📷 abre el selector: cámara en vivo, archivo o calibrar */
+var calibMode = false;
+function refreshCalibStatus(){
+  var c = loadCalib();
+  $('calib-status').textContent = c
+    ? '🎯 Calibrado con tus fichas ✓'
+    : 'Consejo: usa "Calibrar" una vez para que aprenda tus fichas.';
+}
 $('btn-cam').addEventListener('click', function(){
+  calibMode = false;
   $('camchoice-msg').textContent = '';
+  refreshCalibStatus();
   var liveOk = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   $('cam-live').classList.toggle('hidden', !liveOk);
   $('ov-camchoice').classList.remove('hidden');
 });
 $('camchoice-cancel').addEventListener('click', function(){ $('ov-camchoice').classList.add('hidden'); });
 $('ov-camchoice').addEventListener('click', function(e){ if(e.target === this) this.classList.add('hidden'); });
+
+/* --- calibración con una ficha de muestra --- */
+$('cam-calib').addEventListener('click', function(){
+  $('ov-camchoice').classList.add('hidden');
+  calibMode = true;
+  $('calib-msg').textContent = '';
+  $('calib-live').classList.toggle('hidden', !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+  $('ov-calib').classList.remove('hidden');
+});
+$('calib-cancel').addEventListener('click', function(){ calibMode = false; $('ov-calib').classList.add('hidden'); });
+$('ov-calib').addEventListener('click', function(e){ if(e.target === this){ calibMode = false; this.classList.add('hidden'); } });
+
+function runCalibration(source, w, h){
+  var r = null;
+  calibrating = true;
+  try{ r = analyzeDominoes(source, w, h); }catch(e){}
+  calibrating = false;
+  var best = -1, bi = -1;
+  if(r) r.counts.forEach(function(c, i){ if(c > best){ best = c; bi = i; } });
+  if(!r || bi < 0 || best < 1 || !r.pds[bi]){
+    $('calib-msg').textContent = 'No pude ver bien la ficha 😅 — intenta otra foto: una sola ficha, de cerca, con luz.';
+    return;
+  }
+  var box = r.boxes[bi];
+  var pr = r.pds[bi] / Math.min(box[2], box[3]);
+  if(pr < 0.06 || pr > 0.5){
+    $('calib-msg').textContent = 'Algo no cuadró con el tamaño de los puntos — intenta otra foto más de cerca.';
+    return;
+  }
+  try{ localStorage.setItem(CALIB_KEY, JSON.stringify({pr: pr, when: Date.now()})); }catch(e){}
+  $('calib-msg').textContent = '✅ ¡Listo! Aprendí tus fichas (vi ' + r.total +
+    ' punto' + (r.total===1?'':'s') + ' en la muestra). Desde ahora seré más exigente al contar.';
+}
 
 /* --- cámara en vivo dentro de la página --- */
 var camStream = null;
@@ -1131,25 +1242,35 @@ function stopCam(){
   try{ $('cam-video').srcObject = null; }catch(e){}
   $('ov-camera').classList.add('hidden');
 }
-$('cam-live').addEventListener('click', function(){
+function startLiveCam(msgEl){
   navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
     .then(function(s){
       camStream = s;
       $('cam-video').srcObject = s;
       $('ov-camchoice').classList.add('hidden');
+      $('ov-calib').classList.add('hidden');
       $('ov-camera').classList.remove('hidden');
     })
     .catch(function(err){
       var nombre = (err && err.name) ? err.name : 'error';
       var razon = nombre === 'NotAllowedError' ? 'no diste permiso de cámara (o el navegador lo bloqueó)' :
                   nombre === 'NotFoundError' ? 'no se encontró cámara' : nombre;
-      $('camchoice-msg').textContent = 'No se pudo abrir la cámara: ' + razon + '. Prueba la opción 🖼️ de abajo.';
+      $(msgEl).textContent = 'No se pudo abrir la cámara: ' + razon + '. Prueba la opción 🖼️.';
     });
-});
-$('cam-close').addEventListener('click', stopCam);
+}
+$('cam-live').addEventListener('click', function(){ startLiveCam('camchoice-msg'); });
+$('calib-live').addEventListener('click', function(){ startLiveCam('calib-msg'); });
+$('cam-close').addEventListener('click', function(){ stopCam(); calibMode = false; });
 $('cam-shutter').addEventListener('click', function(){
   var v = $('cam-video');
   if(!v.videoWidth){ return; }
+  if(calibMode){
+    runCalibration(v, v.videoWidth, v.videoHeight);  /* antes de apagar el video */
+    stopCam();
+    $('ov-calib').classList.remove('hidden');
+    calibMode = false;
+    return;
+  }
   var res = null;
   try{ res = analyzeDominoes(v, v.videoWidth, v.videoHeight); }catch(e){}
   stopCam();
@@ -1163,18 +1284,24 @@ $('cam-input').addEventListener('change', function(){
   this.value = '';
   if(!f) return;
   $('ov-camchoice').classList.add('hidden');
+  var wasCalib = calibMode;
   var reader = new FileReader();
   reader.onload = function(){
     var img = new Image();
     img.onload = function(){
+      if(wasCalib){
+        runCalibration(img, img.naturalWidth, img.naturalHeight);
+        calibMode = false;
+        return;
+      }
       var res = null;
       try{ res = analyzeDominoes(img, img.naturalWidth, img.naturalHeight); }catch(e){}
       showCountSheet(res);
     };
-    img.onerror = function(){ showCountSheet(null); };
+    img.onerror = function(){ if(wasCalib){ $('calib-msg').textContent = 'No pude leer esa foto.'; } else showCountSheet(null); };
     img.src = reader.result;
   };
-  reader.onerror = function(){ showCountSheet(null); };
+  reader.onerror = function(){ if(wasCalib){ $('calib-msg').textContent = 'No pude leer esa foto.'; } else showCountSheet(null); };
   reader.readAsDataURL(f);
 });
 
