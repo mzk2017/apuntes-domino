@@ -1,4 +1,4 @@
-const CACHE = 'apuntes-domino-v7';
+const CACHE = 'apuntes-domino-v8';
 const FILES = ['.', 'index.html', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png'];
 
 self.addEventListener('install', (e) => {
@@ -16,6 +16,22 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  // La página principal: primero internet (para recibir actualizaciones al
+  // instante), y si no hay conexión, la copia guardada.
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then((resp) => {
+          const copy = resp.clone();
+          caches.open(CACHE).then((c) => c.put('index.html', copy));
+          return resp;
+        })
+        .catch(() =>
+          caches.match('index.html').then((hit) => hit || caches.match('.'))
+        )
+    );
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then((hit) => hit || fetch(e.request))
   );
