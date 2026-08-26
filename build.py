@@ -16,6 +16,8 @@ src = (ROOT / "app-src.html").read_text(encoding="utf-8")
 src = src.replace("%%FANFARE%%", data_uri(SND / "fanfare.mp3"))
 src = src.replace("%%APPLAUSE%%", data_uri(SND / "applause.mp3"))
 src = src.replace("%%CHICKEN%%", data_uri(SND / "chicken.mp3"))
+src = src.replace("%%CHICKEN2%%", data_uri(SND / "chicken2.mp3"))
+src = src.replace("%%CHICKEN3%%", data_uri(SND / "chicken3.mp3"))
 
 dist = ROOT / "dist"
 dist.mkdir(exist_ok=True)
