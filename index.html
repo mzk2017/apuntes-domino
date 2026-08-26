@@ -261,10 +261,12 @@
 <!-- ============ AJUSTES (HOME) ============ -->
 <div class="screen hidden" id="scr-settings">
   <div class="hist-head">
-    <button class="hist-back" id="btn-set-back">‹ Volver</button>
-    <h2 class="hist-title">🏠 <span id="t-settings">Ajustes</span></h2>
+    <h2 class="hist-title">🏠 <span id="t-settings">Inicio</span></h2>
   </div>
   <div style="flex:1;overflow-y:auto;min-height:0">
+    <button class="big-btn" id="home-play" style="margin:4px 0 10px">🁢 Jugar</button>
+    <button class="ghost-link" id="btn-history-home" style="margin:0;width:100%">📜 Historial de partidas</button>
+
     <p class="set-section" id="t-lang">Idioma</p>
     <div class="seg-row">
       <button class="seg-btn sel" data-lang="es">Español</button>
@@ -482,7 +484,8 @@ var I18N = {
     team1:'Jugador / Equipo 1', team2:'Jugador / Equipo 2',
     ph1:'Ej: Los Tigres', ph2:'Ej: Los Leones',
     playTo:'Jugamos a…', otherGoal:'Otra meta (ej: 250)',
-    play:'¡A jugar!', historyBtn:'📜 Historial de partidas', settingsBtn:'🏠 Ajustes',
+    play:'¡A jugar!', historyBtn:'📜 Historial de partidas', settingsBtn:'🏠 Inicio',
+    home:'Inicio', playNow:'🁢 Jugar', continueGame:'🁢 Seguir la partida',
     goal:'Meta', add:'+ Anotar', noPoints:'Sin puntos todavía',
     pointsFor:'Puntos para', sum:'Sumar', cancel:'Cancelar', close:'✕ Cerrar',
     menu:'Menú', again:'🁢 Otra partida (mismos jugadores)', changeAll:'👥 Cambiar jugadores y meta',
@@ -517,7 +520,8 @@ var I18N = {
     team1:'Player / Team 1', team2:'Player / Team 2',
     ph1:'e.g. The Tigers', ph2:'e.g. The Lions',
     playTo:'Playing to…', otherGoal:'Other goal (e.g. 250)',
-    play:'Let’s play!', historyBtn:'📜 Game history', settingsBtn:'🏠 Settings',
+    play:'Let’s play!', historyBtn:'📜 Game history', settingsBtn:'🏠 Home',
+    home:'Home', playNow:'🁢 Play', continueGame:'🁢 Continue game',
     goal:'Goal', add:'+ Add points', noPoints:'No points yet',
     pointsFor:'Points for', sum:'Add', cancel:'Cancel', close:'✕ Close',
     menu:'Menu', again:'🁢 Play again (same players)', changeAll:'👥 Change players & goal',
@@ -584,7 +588,8 @@ function applySettings(){
   $('btn-newplayers2').textContent = t('newPlayers');
   $('t-histtitle').textContent = t('histTitle');
   $('btn-hist-back').textContent = t('back');
-  $('btn-set-back').textContent = t('back');
+  $('home-play').textContent = state.phase === 'game' ? t('continueGame') : t('playNow');
+  $('btn-history-home').textContent = t('historyBtn');
   $('hist-stats-title').textContent = t('record');
   $('t-games').textContent = t('games');
   $('btn-hist-clear').textContent = t('clear');
@@ -601,7 +606,7 @@ function applySettings(){
   $('cam-close').textContent = t('close');
   document.querySelector('.count-q').textContent = t('whoFor');
   $('count-cancel').textContent = t('cancel');
-  $('t-settings').textContent = t('settings');
+  $('t-settings').textContent = t('home');
   $('t-lang').textContent = t('langSec');
   $('t-theme').textContent = t('themeSec');
   $('t-dark').textContent = t('dark');
@@ -952,17 +957,19 @@ function addHistory(game){
   }catch(e){}
 }
 
-var histReturnTo = 'setup';
-function showHistory(){
-  histReturnTo = state.phase === 'setup' ? 'setup' : 'game';
+var histFromHome = false;
+function showHistory(fromHome){
+  histFromHome = !!fromHome;
   renderHistory();
   $('scr-setup').classList.add('hidden');
   $('scr-game').classList.add('hidden');
+  $('scr-settings').classList.add('hidden');
   $('scr-history').classList.remove('hidden');
 }
 $('btn-hist-back').addEventListener('click', function(){
   $('scr-history').classList.add('hidden');
-  render();
+  if(histFromHome) showSettings();
+  else render();
 });
 $('btn-history-setup').addEventListener('click', showHistory);
 
@@ -1615,20 +1622,23 @@ $('ov-count').addEventListener('click', function(e){ if(e.target === this) this.
 });
 
 /* ============ navegación a ajustes ============ */
-var setReturnTo = 'setup';
 function showSettings(){
-  setReturnTo = state.phase === 'setup' ? 'setup' : 'game';
   $('scr-setup').classList.add('hidden');
   $('scr-game').classList.add('hidden');
   $('scr-history').classList.add('hidden');
   refreshSetCalibStatus();
+  $('home-play').textContent = state.phase === 'game' ? t('continueGame') : t('playNow');
   $('scr-settings').classList.remove('hidden');
 }
 $('btn-home').addEventListener('click', showSettings);
 $('btn-settings-setup').addEventListener('click', showSettings);
-$('btn-set-back').addEventListener('click', function(){
+$('home-play').addEventListener('click', function(){
   $('scr-settings').classList.add('hidden');
   render();
+});
+$('btn-history-home').addEventListener('click', function(){
+  $('scr-settings').classList.add('hidden');
+  showHistory(true);
 });
 
 /* selectores de ajustes */
@@ -1662,11 +1672,12 @@ document.querySelectorAll('[data-play]').forEach(function(b){
   });
 });
 
-/* ============ arranque ============ */
+/* ============ arranque: la app abre en el Home ============ */
 load();
 if(state.phase === 'over') state.phase = 'game';
 applySettings();
 render();
+showSettings();
 </script>
 
 <script>
