@@ -8,9 +8,9 @@ import base64, pathlib
 ROOT = pathlib.Path(__file__).parent
 SND = ROOT / "sounds"
 
-def data_uri(path):
+def data_uri(path, mime="audio/mpeg"):
     b64 = base64.b64encode(path.read_bytes()).decode()
-    return f"data:audio/mpeg;base64,{b64}"
+    return f"data:{mime};base64,{b64}"
 
 src = (ROOT / "app-src.html").read_text(encoding="utf-8")
 src = src.replace("%%FANFARE%%", data_uri(SND / "fanfare.mp3"))
@@ -18,6 +18,7 @@ src = src.replace("%%APPLAUSE%%", data_uri(SND / "applause.mp3"))
 src = src.replace("%%CHICKEN%%", data_uri(SND / "chicken.mp3"))
 src = src.replace("%%CHICKEN2%%", data_uri(SND / "chicken2.mp3"))
 src = src.replace("%%CHICKEN3%%", data_uri(SND / "chicken3.mp3"))
+src = src.replace("%%QR%%", data_uri(ROOT / "qr.png", "image/png"))
 
 dist = ROOT / "dist"
 dist.mkdir(exist_ok=True)

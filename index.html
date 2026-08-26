@@ -297,6 +297,17 @@
     <div class="menu-list">
       <button class="menu-btn" id="learn-reset">🗑️ <span id="t-learnreset">Reiniciar aprendizaje</span></button>
     </div>
+
+    <p class="set-section" id="t-sharesec">Compartir la app</p>
+    <div class="menu-list">
+      <button class="menu-btn" id="btn-share">📤 <span id="t-sharebtn">Enviar el enlace a un amigo</span></button>
+    </div>
+    <p class="set-note" id="share-msg"></p>
+    <div style="text-align:center;margin:12px 0">
+      <img src="data:image/png;base64,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" alt="Código QR de la app" style="width:180px;height:180px;border-radius:12px;background:#fff;padding:6px">
+      <p class="set-note" id="t-qrnote">…o que escaneen este código con la cámara del teléfono</p>
+    </div>
+    <p class="set-note" id="t-installnote" style="line-height:1.5">📱 Para el iconito 🁢 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".</p>
   </div>
 </div>
 
@@ -537,6 +548,11 @@ var I18N = {
     fullDone:'✅ Conté {n} de {e} puntos del juego completo y me ajusté con eso.',
     fullRetry:'Quedó lejos del total — intenta otra foto con mejor luz o más de cerca.',
     learnSec:'Aprendizaje del contador', learnReset:'Reiniciar aprendizaje',
+    shareSec:'Compartir la app', shareBtn:'Enviar el enlace a un amigo',
+    shareCopied:'✅ Enlace copiado — pégalo en WhatsApp o donde quieras.',
+    qrNote:'…o que escaneen este código con la cámara del teléfono',
+    installNote:'📱 Para el iconito 🁢 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".',
+    shareText:'Apuntes Dominó — la libreta de puntos para el dominó 🁢🐔',
     learnNone:'Aún sin correcciones. Cuando corrijas un conteo con − / +, la app aprende sola.',
     learnStatus:'📚 {n} correcciones aprendidas · ahora cuento: ', learnCleared:'Aprendizaje reiniciado.',
     sensMore:'con más sensibilidad', sensLess:'con más cuidado', sensNormal:'normal'
@@ -581,6 +597,11 @@ var I18N = {
     fullDone:'✅ I counted {n} of {e} pips of the full set and tuned myself with it.',
     fullRetry:'Still far from the total — try another photo with better light or closer.',
     learnSec:'Counter learning', learnReset:'Reset learning',
+    shareSec:'Share the app', shareBtn:'Send the link to a friend',
+    shareCopied:'✅ Link copied — paste it in WhatsApp or anywhere.',
+    qrNote:'…or have them scan this code with the phone camera',
+    installNote:'📱 For the 🁢 icon on the home screen: Android (Chrome): ⋮ → "Add to Home screen". iPhone (Safari): share button → "Add to Home Screen".',
+    shareText:'Apuntes Dominó — the score pad for dominoes 🁢🐔',
     learnNone:'No corrections yet. When you fix a count with − / +, the app learns by itself.',
     learnStatus:'📚 {n} corrections learned · now counting: ', learnCleared:'Learning reset.',
     sensMore:'more sensitively', sensLess:'more carefully', sensNormal:'normally'
@@ -658,6 +679,10 @@ function applySettings(){
   $('t-learnreset').textContent = t('learnReset');
   $('t-fullsec').textContent = t('fullSec');
   $('t-fullhelp').textContent = t('fullHelp');
+  $('t-sharesec').textContent = t('shareSec');
+  $('t-sharebtn').textContent = t('shareBtn');
+  $('t-qrnote').textContent = t('qrNote');
+  $('t-installnote').textContent = t('installNote');
   $('fullcalib-live').textContent = t('camLive').replace(' aquí mismo','').replace(' right here','');
   $('fullcalib-file').textContent = t('camFile');
   refreshSetCalibStatus();
@@ -1269,6 +1294,23 @@ function registerFeedback(detected, corrected, rawThumb){
 $('learn-reset').addEventListener('click', function(){
   try{ localStorage.removeItem(FB_KEY); }catch(e){}
   $('learn-status').textContent = t('learnCleared');
+});
+
+/* compartir la app con amigos */
+var APP_URL = 'https://mzk2017.github.io/apuntes-domino/';
+$('btn-share').addEventListener('click', function(){
+  if(navigator.share){
+    navigator.share({ title: 'Apuntes Dominó', text: t('shareText'), url: APP_URL })
+      .catch(function(){});
+  }else if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(APP_URL).then(function(){
+      $('share-msg').textContent = t('shareCopied');
+    }).catch(function(){
+      $('share-msg').textContent = APP_URL;
+    });
+  }else{
+    $('share-msg').textContent = APP_URL;
+  }
 });
 
 /* calibración guardada: proporción punto/ficha aprendida de una muestra */
