@@ -1,5 +1,5 @@
-const CACHE = 'apuntes-domino-v11';
-const FILES = ['.', 'index.html', 'manifest.json', 'opencv.js', 'count.js',
+const CACHE = 'apuntes-domino-v12';
+const FILES = ['.', 'index.html', 'manifest.json', 'opencv.js', 'count.js', 'pollona.mp4',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
   'sounds/gal01.mp3', 'sounds/gal02.mp3', 'sounds/gal03.mp3',
   'sounds/gal04.mp3', 'sounds/gal05.mp3',

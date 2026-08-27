@@ -475,6 +475,7 @@
 <!-- ============ POLLONA ============ -->
 <div class="fx-overlay hidden" id="ov-pollona">
   <div class="fx-card">
+    <video id="pollona-video" class="hidden" playsinline preload="auto" src="pollona.mp4" style="width:100%;max-width:320px;border-radius:16px;display:block;margin:0 auto;box-shadow:0 8px 24px rgba(0,0,0,.5)"></video>
     <div class="hen-dance" aria-hidden="true">
       <span class="note n1">🎵</span><span class="note n2">🎶</span><span class="note n3">🎵</span><span class="note n4">🎶</span>
       <svg class="hen-svg" viewBox="0 0 200 190" xmlns="http://www.w3.org/2000/svg">
@@ -975,6 +976,10 @@ function stopFx(){
   try{ window.speechSynthesis && speechSynthesis.cancel(); }catch(e){}
   if(pollonaTimer){ clearTimeout(pollonaTimer); clearInterval(pollonaTimer); pollonaTimer = null; }
   if(gritoAudio){ try{ gritoAudio.onended = null; gritoAudio.pause(); }catch(e){} gritoAudio = null; }
+  var pv = $('pollona-video');
+  if(pv){ try{ pv.onended = null; pv.onerror = null; pv.pause(); }catch(e){} pv.classList.add('hidden'); }
+  var hd2 = document.querySelector('.hen-dance');
+  if(hd2) hd2.classList.remove('hidden');
   [fanfare, applause, chicken].forEach(function(a){ if(a){ a.onended = null; a.pause(); a.currentTime = 0; a.volume = 1; } });
 }
 $('btn-rematch').addEventListener('click', rematch);
@@ -1018,6 +1023,33 @@ function playWin(){
 }
 /* pollona: primero la gallina cacareando, al terminar la fanfarria de ganador */
 var pollonaTimer = null;
+/* el video de la pollona: se muestra después del sonido de las gallinas,
+   suena con su propio audio, y al terminar entra la fanfarria */
+function videoThenWin(){
+  var v = $('pollona-video');
+  var hd = document.querySelector('.hen-dance');
+  var done = false;
+  function fin(){
+    if(done) return;
+    done = true;
+    try{ v.onended = null; v.onerror = null; v.pause(); }catch(e){}
+    if(v) v.classList.add('hidden');
+    if(hd) hd.classList.remove('hidden');
+    playWin();
+  }
+  if(!v){ playWin(); return; }
+  try{
+    if(hd) hd.classList.add('hidden');
+    v.classList.remove('hidden');
+    v.currentTime = 0;
+    v.onended = fin;
+    v.onerror = fin;
+    var p = v.play();
+    if(p && p.catch) p.catch(fin);
+    setTimeout(fin, 20000);   /* respaldo por si el video no avisa */
+  }catch(e){ fin(); }
+}
+
 var gritoAudio = null;
 function shoutPollona(){
   var g = loadGrito();
@@ -1040,7 +1072,7 @@ function playPollona(){
     if(winStarted) return;
     winStarted = true;
     if(chicken){ try{ chicken.onended = null; chicken.pause(); chicken.volume = 1; }catch(e){} }
-    playWin();
+    videoThenWin();   /* tras las gallinas: el video de la pollona, y al final la fanfarria */
   }
   if(chicken){
     try{
