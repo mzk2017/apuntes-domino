@@ -131,17 +131,26 @@
   .fx-card>*{animation:popIn .5s cubic-bezier(.2,1.4,.4,1) both}
   .fx-card>:nth-child(2){animation-delay:.1s}.fx-card>:nth-child(3){animation-delay:.2s}.fx-card>:nth-child(4){animation-delay:.3s}.fx-card>:nth-child(5){animation-delay:.4s}
 
-  /* pollona cooking scene */
-  .pot-scene{position:relative;width:210px;height:190px;margin:0 auto}
-  .chicken{position:absolute;left:50%;top:6px;transform:translateX(-50%);font-size:3.4rem;animation:bob 1.1s ease-in-out infinite}
-  @keyframes bob{0%,100%{transform:translateX(-50%) translateY(0) rotate(-6deg)}50%{transform:translateX(-50%) translateY(14px) rotate(6deg)}}
-  .steam{position:absolute;font-size:1.3rem;opacity:0;animation:rise 2.2s ease-out infinite}
-  .steam.s1{left:34px;top:30px}.steam.s2{left:96px;top:20px;animation-delay:.7s}.steam.s3{left:158px;top:30px;animation-delay:1.4s}
-  @keyframes rise{0%{transform:translateY(14px);opacity:0}25%{opacity:.85}100%{transform:translateY(-34px);opacity:0}}
-  .pot{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);width:170px;height:78px;background:linear-gradient(#4a4a52,#2e2e34);border-radius:12px 12px 40px 40px;box-shadow:inset 0 8px 0 rgba(0,0,0,.4)}
-  .pot::before{content:"";position:absolute;left:-16px;right:-16px;top:-6px;height:14px;background:#55555e;border-radius:99px}
-  .flames{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);font-size:1.7rem;letter-spacing:6px;animation:flicker .5s ease-in-out infinite alternate}
-  @keyframes flicker{from{transform:translateX(-50%) scale(1)}to{transform:translateX(-50%) scale(1.15)}}
+  /* pollona: gallina caricatura feliz bailando */
+  .hen-dance{position:relative;width:230px;height:210px;margin:0 auto}
+  .hen-svg{width:200px;height:190px;display:block;margin:0 auto;transform-origin:50% 95%;animation:henDance .45s ease-in-out infinite alternate}
+  @keyframes henDance{
+    0%{transform:translateY(0) rotate(-7deg)}
+    100%{transform:translateY(-12px) rotate(7deg)}
+  }
+  .hen-wing{transform-origin:88px 112px;animation:henFlap .28s ease-in-out infinite alternate}
+  @keyframes henFlap{from{transform:rotate(-28deg)}to{transform:rotate(14deg)}}
+  .hen-leg1{transform-origin:88px 152px;animation:henKick .45s ease-in-out infinite alternate}
+  .hen-leg2{transform-origin:110px 152px;animation:henKick .45s ease-in-out infinite alternate-reverse}
+  @keyframes henKick{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
+  .hen-head{transform-origin:138px 80px;animation:henNod .45s ease-in-out infinite alternate}
+  @keyframes henNod{from{transform:rotate(-5deg)}to{transform:rotate(7deg)}}
+  .note{position:absolute;font-size:1.5rem;opacity:0;animation:noteUp 1.6s ease-out infinite}
+  .note.n1{left:8px;top:70px}
+  .note.n2{right:6px;top:50px;animation-delay:.5s}
+  .note.n3{left:30px;top:20px;animation-delay:1s}
+  .note.n4{right:34px;top:110px;animation-delay:.8s}
+  @keyframes noteUp{0%{transform:translateY(16px) rotate(-10deg);opacity:0}25%{opacity:1}100%{transform:translateY(-44px) rotate(12deg);opacity:0}}
   .fx-word.pollona{color:#FF9B45;font-size:3.4rem}
 
   /* ---------- menú e historial ---------- */
@@ -470,11 +479,45 @@
 <!-- ============ POLLONA ============ -->
 <div class="fx-overlay hidden" id="ov-pollona">
   <div class="fx-card">
-    <div class="pot-scene" aria-hidden="true">
-      <span class="steam s1">💨</span><span class="steam s2">💨</span><span class="steam s3">💨</span>
-      <span class="chicken">🐔</span>
-      <div class="pot"></div>
-      <div class="flames">🔥🔥🔥</div>
+    <div class="hen-dance" aria-hidden="true">
+      <span class="note n1">🎵</span><span class="note n2">🎶</span><span class="note n3">🎵</span><span class="note n4">🎶</span>
+      <svg class="hen-svg" viewBox="0 0 200 190" xmlns="http://www.w3.org/2000/svg">
+        <!-- cola -->
+        <g>
+          <ellipse cx="52" cy="98" rx="26" ry="11" fill="#E8A13C" transform="rotate(-38 52 98)"/>
+          <ellipse cx="50" cy="108" rx="28" ry="11" fill="#E05B4E" transform="rotate(-20 50 108)"/>
+          <ellipse cx="52" cy="118" rx="26" ry="10" fill="#C77F1A" transform="rotate(-4 52 118)"/>
+        </g>
+        <!-- patas bailando -->
+        <g class="hen-leg1" stroke="#E8A13C" stroke-width="5" stroke-linecap="round" fill="none">
+          <path d="M88 148 L84 172"/><path d="M84 172 L74 178"/><path d="M84 172 L86 180"/><path d="M84 172 L93 177"/>
+        </g>
+        <g class="hen-leg2" stroke="#E8A13C" stroke-width="5" stroke-linecap="round" fill="none">
+          <path d="M110 148 L116 172"/><path d="M116 172 L106 178"/><path d="M116 172 L118 180"/><path d="M116 172 L125 176"/>
+        </g>
+        <!-- cuerpo -->
+        <ellipse cx="98" cy="118" rx="46" ry="37" fill="#F7F2E6" stroke="#221D15" stroke-width="3.5"/>
+        <!-- ala -->
+        <g class="hen-wing">
+          <ellipse cx="92" cy="122" rx="24" ry="14" fill="#EAE2CE" stroke="#221D15" stroke-width="3" transform="rotate(-15 92 122)"/>
+        </g>
+        <!-- cabeza -->
+        <g class="hen-head">
+          <circle cx="140" cy="72" r="24" fill="#F7F2E6" stroke="#221D15" stroke-width="3.5"/>
+          <!-- cresta -->
+          <path d="M126 55 q3 -14 12 -9 q2 -12 12 -7 q8 -8 12 3 q-4 4 -8 6 q-8 6 -28 7 z" fill="#E05B4E" stroke="#221D15" stroke-width="2.5"/>
+          <!-- pico abierto contento -->
+          <path d="M162 68 L180 72 L163 77 z" fill="#E8A13C" stroke="#221D15" stroke-width="2.5"/>
+          <path d="M162 79 L175 82 L162 85 z" fill="#C77F1A" stroke="#221D15" stroke-width="2.5"/>
+          <!-- barbilla -->
+          <ellipse cx="158" cy="90" rx="6" ry="8" fill="#E05B4E" stroke="#221D15" stroke-width="2"/>
+          <!-- ojo feliz -->
+          <circle cx="146" cy="66" r="4.5" fill="#221D15"/>
+          <circle cx="148" cy="64.5" r="1.6" fill="#fff"/>
+          <!-- cachete -->
+          <circle cx="134" cy="80" r="5" fill="#F5B8A8" opacity=".8"/>
+        </g>
+      </svg>
     </div>
     <div class="fx-word pollona">¡¡POLLONA!!</div>
     <div class="fx-name" id="pol-name">—</div>
@@ -1233,8 +1276,9 @@ function loadCV(){
   s.onload = function(){
     var c = window.cv;
     if(c && typeof c.then === 'function'){
-      c.then(function(m){ window.cv = m; cvState = 'ready'; })
-       .catch(function(){ cvState = 'failed'; });
+      /* algunos builds devuelven un "thenable" sin .catch */
+      try{ c.then(function(m){ window.cv = m; cvState = 'ready'; }); }
+      catch(e){ cvState = 'failed'; }
     }else if(c && c.Mat){
       cvState = 'ready';
     }else if(c){
