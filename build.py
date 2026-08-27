@@ -42,6 +42,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {{
   navigator.serviceWorker.register('sw.js');
 }}
 </script>
+<script data-goatcounter="https://apuntesdomino.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>
 """
