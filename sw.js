@@ -1,9 +1,10 @@
-const CACHE = 'apuntes-domino-v10';
+const CACHE = 'apuntes-domino-v11';
 const FILES = ['.', 'index.html', 'manifest.json', 'opencv.js', 'count.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
-  'sounds/chicken.mp3', 'sounds/chicken2.mp3', 'sounds/chicken3.mp3',
-  'sounds/hen04.mp3', 'sounds/hen05.mp3', 'sounds/hen06.mp3',
-  'sounds/hen07.mp3', 'sounds/hen08.mp3', 'sounds/hen09.mp3', 'sounds/hen10.mp3'];
+  'sounds/gal01.mp3', 'sounds/gal02.mp3', 'sounds/gal03.mp3',
+  'sounds/gal04.mp3', 'sounds/gal05.mp3',
+  'sounds/chicken3.mp3', 'sounds/hen04.mp3', 'sounds/hen05.mp3',
+  'sounds/hen06.mp3', 'sounds/hen07.mp3', 'sounds/hen08.mp3', 'sounds/hen09.mp3'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)));

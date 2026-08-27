@@ -496,10 +496,18 @@ var SND_APPLAUSE = "data:audio/mpeg;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 /* los sonidos de gallina viven como archivos aparte (la app pesa menos);
    el service worker los guarda para que funcionen sin internet */
 var SND_CHICKENS = [
-  'sounds/chicken.mp3',  'sounds/chicken2.mp3', 'sounds/chicken3.mp3',
-  'sounds/hen04.mp3',    'sounds/hen05.mp3',    'sounds/hen06.mp3',
-  'sounds/hen07.mp3',    'sounds/hen08.mp3',    'sounds/hen09.mp3',
-  'sounds/hen10.mp3'
+  'sounds/gal01.mp3',    /* gallinas gritando */
+  'sounds/hen06.mp3',    /* gallinas alborotadas */
+  'sounds/hen04.mp3',    /* cacareo corto */
+  'sounds/gal02.mp3',    /* gallinas cluqueando */
+  'sounds/gal03.mp3',    /* gallinas conversando */
+  'sounds/gal04.mp3',    /* gallina cómica */
+  'sounds/hen05.mp3',    /* gallinero ambiente */
+  'sounds/chicken3.mp3', /* gallo canto corto */
+  'sounds/hen07.mp3',    /* grito de gallo */
+  'sounds/hen08.mp3',    /* gallo llamando */
+  'sounds/hen09.mp3',    /* gallo al amanecer */
+  'sounds/gal05.mp3'     /* gallo y gallinas */
 ];
 
 var $ = function(id){ return document.getElementById(id); };
@@ -513,7 +521,7 @@ try{
   if(_s){
     if(_s.lang === 'en') SETTINGS.lang = 'en';
     if(_s.theme === 'light') SETTINGS.theme = 'light';
-    if(typeof _s.hen === 'number' && _s.hen >= 0 && _s.hen <= 9) SETTINGS.hen = _s.hen | 0;
+    if(typeof _s.hen === 'number' && _s.hen >= 0 && _s.hen <= 11) SETTINGS.hen = _s.hen | 0;
   }
 }catch(e){}
 function saveSettings(){ try{ localStorage.setItem(SET_KEY, JSON.stringify(SETTINGS)); }catch(e){} }
@@ -552,7 +560,7 @@ var I18N = {
     whoFor:'¿Para quién son estos puntos?',
     settings:'Ajustes', langSec:'Idioma', themeSec:'Tema', dark:'🌙 Oscuro', light:'☀️ Claro',
     henSec:'Sonido de la pollona',
-    henNames:['🐔 Gallinas y palomas','🐔 Cacareo de gallina','🐓 Gallo (canto corto)','🐔 Cacareo corto','🏡 Gallinero (ambiente)','🐔 Gallinas alborotadas','🐓 Grito de gallo','🐓 Gallo llamando','🐓 Gallo al amanecer','🌅 Granja al amanecer'],
+    henNames:['🐔 Gallinas gritando','🐔 Gallinas alborotadas','🐔 Cacareo corto','🐔 Gallinas cluqueando','🐔 Gallinas conversando','🐔 Gallina cómica (¡bwak!)','🏡 Gallinero (ambiente)','🐓 Gallo (canto corto)','🐓 Grito de gallo','🐓 Gallo llamando','🐓 Gallo al amanecer','🐓 Gallo y gallinas'],
     calibSec:'Calibración de la cámara', calibNow:'Calibrar con tus fichas', calibClear:'Borrar calibración',
     calibCleared:'Calibración borrada.',
     fullSec:'⭐ Calibración completa (la mejor)',
@@ -605,7 +613,7 @@ var I18N = {
     whoFor:'Who are these points for?',
     settings:'Settings', langSec:'Language', themeSec:'Theme', dark:'🌙 Dark', light:'☀️ Light',
     henSec:'Pollona sound',
-    henNames:['🐔 Chickens & pigeons','🐔 Hen cackle','🐓 Short rooster crow','🐔 Short clucking','🏡 Hen coop ambience','🐔 Chickens crying','🐓 Cock cry','🐓 Cock calling','🐓 Morning rooster','🌅 Farm morning'],
+    henNames:['🐔 Screaming chickens','🐔 Chickens crying','🐔 Short clucking','🐔 Chickens clucking','🐔 Chicken talk','🐔 Funny chicken (bwak!)','🏡 Hen coop ambience','🐓 Short rooster crow','🐓 Cock cry','🐓 Cock calling','🐓 Morning rooster','🐓 Rooster & chickens'],
     calibSec:'Camera calibration', calibNow:'Calibrate with your tiles', calibClear:'Clear calibration',
     calibCleared:'Calibration cleared.',
     fullSec:'⭐ Full calibration (the best)',
