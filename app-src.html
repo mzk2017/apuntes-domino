@@ -271,9 +271,10 @@
     </div>
 
     <p class="set-section" id="t-hen">Sonido de la pollona</p>
-    <div class="hen-row"><button class="seg-btn sel" data-hen="0" id="hen-name-0">🐔 Gallina escandalosa</button><button class="hen-play" data-play="0" aria-label="Escuchar">▶</button></div>
-    <div class="hen-row"><button class="seg-btn" data-hen="1" id="hen-name-1">🐔 Cacareo corto</button><button class="hen-play" data-play="1" aria-label="Escuchar">▶</button></div>
-    <div class="hen-row"><button class="seg-btn" data-hen="2" id="hen-name-2">🐓 Gallo</button><button class="hen-play" data-play="2" aria-label="Escuchar">▶</button></div>
+    <div class="hen-row">
+      <select id="hen-select" class="name-input" style="flex:1;padding:13px 12px;font-size:1rem"></select>
+      <button class="hen-play" id="hen-play" aria-label="Escuchar">▶</button>
+    </div>
 
     <p class="set-section" id="t-calibsec">Calibración de la cámara</p>
     <div class="menu-list">
@@ -480,7 +481,14 @@
 /* ============ sonidos (Mixkit, licencia libre — incrustados) ============ */
 var SND_FANFARE = "%%FANFARE%%";
 var SND_APPLAUSE = "%%APPLAUSE%%";
-var SND_CHICKENS = ["%%CHICKEN%%", "%%CHICKEN2%%", "%%CHICKEN3%%"];
+/* los sonidos de gallina viven como archivos aparte (la app pesa menos);
+   el service worker los guarda para que funcionen sin internet */
+var SND_CHICKENS = [
+  'sounds/chicken.mp3',  'sounds/chicken2.mp3', 'sounds/chicken3.mp3',
+  'sounds/hen04.mp3',    'sounds/hen05.mp3',    'sounds/hen06.mp3',
+  'sounds/hen07.mp3',    'sounds/hen08.mp3',    'sounds/hen09.mp3',
+  'sounds/hen10.mp3'
+];
 
 var $ = function(id){ return document.getElementById(id); };
 var STORE_KEY = 'apuntes-domino-v1';
@@ -493,7 +501,7 @@ try{
   if(_s){
     if(_s.lang === 'en') SETTINGS.lang = 'en';
     if(_s.theme === 'light') SETTINGS.theme = 'light';
-    if(_s.hen === 1 || _s.hen === 2) SETTINGS.hen = _s.hen;
+    if(typeof _s.hen === 'number' && _s.hen >= 0 && _s.hen <= 9) SETTINGS.hen = _s.hen | 0;
   }
 }catch(e){}
 function saveSettings(){ try{ localStorage.setItem(SET_KEY, JSON.stringify(SETTINGS)); }catch(e){} }
@@ -531,7 +539,8 @@ var I18N = {
     countFail:'No pude distinguir las fichas 😅 — pon el número a mano, o intenta otra foto con las fichas una al lado de la otra sobre un fondo oscuro.',
     whoFor:'¿Para quién son estos puntos?',
     settings:'Ajustes', langSec:'Idioma', themeSec:'Tema', dark:'🌙 Oscuro', light:'☀️ Claro',
-    henSec:'Sonido de la pollona', hen0:'🐔 Gallina escandalosa', hen1:'🐔 Cacareo corto', hen2:'🐓 Gallo',
+    henSec:'Sonido de la pollona',
+    henNames:['🐔 Gallinas y palomas','🐔 Cacareo de gallina','🐓 Gallo (canto corto)','🐔 Cacareo corto','🏡 Gallinero (ambiente)','🐔 Gallinas alborotadas','🐓 Grito de gallo','🐓 Gallo llamando','🐓 Gallo al amanecer','🌅 Granja al amanecer'],
     calibSec:'Calibración de la cámara', calibNow:'Calibrar con tus fichas', calibClear:'Borrar calibración',
     calibCleared:'Calibración borrada.',
     fullSec:'⭐ Calibración completa (la mejor)',
@@ -583,7 +592,8 @@ var I18N = {
     countFail:'I could not make out the tiles 😅 — set the number by hand, or try another photo with the tiles side by side on a dark background.',
     whoFor:'Who are these points for?',
     settings:'Settings', langSec:'Language', themeSec:'Theme', dark:'🌙 Dark', light:'☀️ Light',
-    henSec:'Pollona sound', hen0:'🐔 Loud hen', hen1:'🐔 Quick cackle', hen2:'🐓 Rooster',
+    henSec:'Pollona sound',
+    henNames:['🐔 Chickens & pigeons','🐔 Hen cackle','🐓 Short rooster crow','🐔 Short clucking','🏡 Hen coop ambience','🐔 Chickens crying','🐓 Cock cry','🐓 Cock calling','🐓 Morning rooster','🌅 Farm morning'],
     calibSec:'Camera calibration', calibNow:'Calibrate with your tiles', calibClear:'Clear calibration',
     calibCleared:'Calibration cleared.',
     fullSec:'⭐ Full calibration (the best)',
@@ -612,7 +622,18 @@ function applySettings(){
   /* selectores marcados */
   document.querySelectorAll('[data-lang]').forEach(function(b){ b.classList.toggle('sel', b.dataset.lang === SETTINGS.lang); });
   document.querySelectorAll('[data-theme]').forEach(function(b){ b.classList.toggle('sel', b.dataset.theme === SETTINGS.theme); });
-  document.querySelectorAll('[data-hen]').forEach(function(b){ b.classList.toggle('sel', parseInt(b.dataset.hen,10) === SETTINGS.hen); });
+  /* lista desplegable de gallinas */
+  var sel = $('hen-select');
+  if(sel){
+    var names = (I18N[SETTINGS.lang] && I18N[SETTINGS.lang].henNames) || I18N.es.henNames;
+    sel.innerHTML = '';
+    names.forEach(function(nm, i){
+      var op = document.createElement('option');
+      op.value = i; op.textContent = nm;
+      sel.appendChild(op);
+    });
+    sel.value = String(SETTINGS.hen);
+  }
   /* textos */
   document.querySelector('.subtitle').textContent = t('subtitle');
   document.querySelector('label[for="name1"]').innerHTML = '<span class="swatch red"></span>' + t('team1');
@@ -666,9 +687,6 @@ function applySettings(){
   $('t-dark').textContent = t('dark');
   $('t-light').textContent = t('light');
   $('t-hen').textContent = t('henSec');
-  $('hen-name-0').textContent = t('hen0');
-  $('hen-name-1').textContent = t('hen1');
-  $('hen-name-2').textContent = t('hen2');
   $('t-calibsec').textContent = t('calibSec');
   $('t-calibnow').textContent = t('calibNow');
   $('t-calibclear').textContent = t('calibClear');
@@ -2120,22 +2138,18 @@ document.querySelectorAll('[data-theme]').forEach(function(b){
     saveSettings(); applySettings();
   });
 });
-document.querySelectorAll('[data-hen]').forEach(function(b){
-  b.addEventListener('click', function(){
-    SETTINGS.hen = parseInt(b.dataset.hen, 10);
-    saveSettings(); applySettings();
-  });
+$('hen-select').addEventListener('change', function(){
+  SETTINGS.hen = parseInt(this.value, 10) || 0;
+  saveSettings();
 });
 var henPreview = null;
-document.querySelectorAll('[data-play]').forEach(function(b){
-  b.addEventListener('click', function(){
-    try{
-      if(henPreview){ henPreview.pause(); }
-      henPreview = new Audio(SND_CHICKENS[parseInt(b.dataset.play, 10)]);
-      var p = henPreview.play();
-      if(p && p.catch) p.catch(function(){});
-    }catch(e){}
-  });
+$('hen-play').addEventListener('click', function(){
+  try{
+    if(henPreview){ henPreview.pause(); }
+    henPreview = new Audio(SND_CHICKENS[SETTINGS.hen]);
+    var p = henPreview.play();
+    if(p && p.catch) p.catch(function(){});
+  }catch(e){}
 });
 
 /* ============ arranque: la app abre en el Home ============ */
