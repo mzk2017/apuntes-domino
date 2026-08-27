@@ -285,6 +285,14 @@
       <button class="hen-play" id="hen-play" aria-label="Escuchar">▶</button>
     </div>
 
+    <p class="set-section" id="t-gritosec">El grito de ¡POLLONA!</p>
+    <p class="set-note" id="grito-status">—</p>
+    <div class="menu-list">
+      <button class="menu-btn" id="grito-rec">🎤 Grabar mi grito de ¡POLLONAAA!</button>
+      <button class="menu-btn hidden" id="grito-play">▶ Escuchar mi grito</button>
+      <button class="menu-btn hidden" id="grito-del">🗑️ Volver a la voz del teléfono</button>
+    </div>
+
     <p class="set-section" id="t-calibsec">Calibración de la cámara</p>
     <div class="menu-list">
       <button class="menu-btn" id="set-calibrate">🎯 <span id="t-calibnow">Calibrar con tus fichas</span></button>
@@ -590,6 +598,14 @@ var I18N = {
     countFail:'No pude distinguir las fichas 😅 — pon el número a mano, o intenta otra foto con las fichas una al lado de la otra sobre un fondo oscuro.',
     whoFor:'¿Para quién son estos puntos?',
     settings:'Ajustes', langSec:'Idioma', themeSec:'Tema', dark:'🌙 Oscuro', light:'☀️ Claro',
+    gritoSec:'El grito de ¡POLLONA!',
+    gritoNone:'Ahora grita la voz robótica del teléfono. ¡Graba tu propio grito para que suene DE VERDAD! 🎤',
+    gritoHave:'🎤 Grito grabado ✓ — así sonará cada pollona.',
+    gritoRec:'🎤 Grabar mi grito de ¡POLLONAAA!',
+    gritoStop:'⏺ Grabando… ¡GRITA YA! (toca para parar)',
+    gritoPlay:'▶ Escuchar mi grito',
+    gritoDel:'🗑️ Volver a la voz del teléfono',
+    gritoErr:'No se pudo grabar: dale permiso de micrófono e intenta de nuevo.',
     henSec:'Sonido de la pollona',
     henNames:['🐔 Gallinas gritando','🐔 Gallinas alborotadas','🐔 Cacareo corto','🐔 Gallinas cluqueando','🐔 Gallinas conversando','🐔 Gallina cómica (¡bwak!)','🏡 Gallinero (ambiente)','🐓 Gallo (canto corto)','🐓 Grito de gallo','🐓 Gallo llamando','🐓 Gallo al amanecer','🐓 Gallo y gallinas'],
     calibSec:'Calibración de la cámara', calibNow:'Calibrar con tus fichas', calibClear:'Borrar calibración',
@@ -643,6 +659,14 @@ var I18N = {
     countFail:'I could not make out the tiles 😅 — set the number by hand, or try another photo with the tiles side by side on a dark background.',
     whoFor:'Who are these points for?',
     settings:'Settings', langSec:'Language', themeSec:'Theme', dark:'🌙 Dark', light:'☀️ Light',
+    gritoSec:'The ¡POLLONA! shout',
+    gritoNone:'Right now the phone’s robotic voice shouts. Record your own shout so it sounds REAL! 🎤',
+    gritoHave:'🎤 Shout recorded ✓ — every pollona will sound like this.',
+    gritoRec:'🎤 Record my ¡POLLONAAA! shout',
+    gritoStop:'⏺ Recording… SHOUT NOW! (tap to stop)',
+    gritoPlay:'▶ Play my shout',
+    gritoDel:'🗑️ Back to the phone voice',
+    gritoErr:'Could not record: allow microphone access and try again.',
     henSec:'Pollona sound',
     henNames:['🐔 Screaming chickens','🐔 Chickens crying','🐔 Short clucking','🐔 Chickens clucking','🐔 Chicken talk','🐔 Funny chicken (bwak!)','🏡 Hen coop ambience','🐓 Short rooster crow','🐓 Cock cry','🐓 Cock calling','🐓 Morning rooster','🐓 Rooster & chickens'],
     calibSec:'Camera calibration', calibNow:'Calibrate with your tiles', calibClear:'Clear calibration',
@@ -738,6 +762,8 @@ function applySettings(){
   $('t-dark').textContent = t('dark');
   $('t-light').textContent = t('light');
   $('t-hen').textContent = t('henSec');
+  $('t-gritosec').textContent = t('gritoSec');
+  refreshGritoUI();
   $('t-calibsec').textContent = t('calibSec');
   $('t-calibnow').textContent = t('calibNow');
   $('t-calibclear').textContent = t('calibClear');
@@ -948,6 +974,7 @@ function stopFx(){
   stopConfetti();
   try{ window.speechSynthesis && speechSynthesis.cancel(); }catch(e){}
   if(pollonaTimer){ clearTimeout(pollonaTimer); clearInterval(pollonaTimer); pollonaTimer = null; }
+  if(gritoAudio){ try{ gritoAudio.onended = null; gritoAudio.pause(); }catch(e){} gritoAudio = null; }
   [fanfare, applause, chicken].forEach(function(a){ if(a){ a.onended = null; a.pause(); a.currentTime = 0; a.volume = 1; } });
 }
 $('btn-rematch').addEventListener('click', rematch);
@@ -991,9 +1018,23 @@ function playWin(){
 }
 /* pollona: primero la gallina cacareando, al terminar la fanfarria de ganador */
 var pollonaTimer = null;
+var gritoAudio = null;
+function shoutPollona(){
+  var g = loadGrito();
+  if(!g){ sayPollona(0); return; }
+  try{
+    var n = 0;
+    gritoAudio = new Audio(g);
+    gritoAudio.onended = function(){
+      if(++n < 2){ gritoAudio.currentTime = 0; var p2 = gritoAudio.play(); if(p2 && p2.catch) p2.catch(function(){}); }
+    };
+    var p = gritoAudio.play();
+    if(p && p.catch) p.catch(function(){ sayPollona(0); });
+  }catch(e){ sayPollona(0); }
+}
 function playPollona(){
   ensureAudio();
-  sayPollona(0);
+  shoutPollona();
   var winStarted = false;
   function winPart(){
     if(winStarted) return;
@@ -2190,6 +2231,71 @@ document.querySelectorAll('[data-theme]').forEach(function(b){
     saveSettings(); applySettings();
   });
 });
+/* ---- grabar el grito de POLLONA con la propia voz ---- */
+var GRITO_KEY = 'apuntes-domino-grito';
+function loadGrito(){
+  try{ return localStorage.getItem(GRITO_KEY); }catch(e){ return null; }
+}
+function refreshGritoUI(){
+  var has = !!loadGrito();
+  $('grito-status').textContent = has ? t('gritoHave') : t('gritoNone');
+  $('grito-rec').textContent = t('gritoRec');
+  $('grito-play').textContent = t('gritoPlay');
+  $('grito-del').textContent = t('gritoDel');
+  $('grito-play').classList.toggle('hidden', !has);
+  $('grito-del').classList.toggle('hidden', !has);
+}
+var recStream = null, recorder = null, recChunks = [], recTimer = null;
+function stopRec(){
+  if(recTimer){ clearTimeout(recTimer); recTimer = null; }
+  try{ if(recorder && recorder.state !== 'inactive') recorder.stop(); }catch(e){}
+}
+$('grito-rec').addEventListener('click', function(){
+  if(recorder && recorder.state === 'recording'){ stopRec(); return; }
+  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)){
+    $('grito-status').textContent = t('gritoErr');
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({audio: true}).then(function(stream){
+    recStream = stream;
+    recChunks = [];
+    try{ recorder = new MediaRecorder(stream); }
+    catch(e){ $('grito-status').textContent = t('gritoErr'); return; }
+    recorder.ondataavailable = function(ev){ if(ev.data && ev.data.size) recChunks.push(ev.data); };
+    recorder.onstop = function(){
+      try{ recStream.getTracks().forEach(function(tr){ tr.stop(); }); }catch(e){}
+      var blob = new Blob(recChunks, {type: recorder.mimeType || 'audio/webm'});
+      var rd = new FileReader();
+      rd.onload = function(){
+        try{ localStorage.setItem(GRITO_KEY, rd.result); }catch(e){}
+        $('grito-rec').textContent = t('gritoRec');
+        refreshGritoUI();
+      };
+      rd.readAsDataURL(blob);
+    };
+    recorder.start();
+    $('grito-rec').textContent = t('gritoStop');
+    recTimer = setTimeout(stopRec, 5000);   /* máximo 5 segundos de grito */
+  }).catch(function(){
+    $('grito-status').textContent = t('gritoErr');
+  });
+});
+var gritoPreview = null;
+$('grito-play').addEventListener('click', function(){
+  var g = loadGrito();
+  if(!g) return;
+  try{
+    if(gritoPreview) gritoPreview.pause();
+    gritoPreview = new Audio(g);
+    var p = gritoPreview.play();
+    if(p && p.catch) p.catch(function(){});
+  }catch(e){}
+});
+$('grito-del').addEventListener('click', function(){
+  try{ localStorage.removeItem(GRITO_KEY); }catch(e){}
+  refreshGritoUI();
+});
+
 $('hen-select').addEventListener('change', function(){
   SETTINGS.hen = parseInt(this.value, 10) || 0;
   saveSettings();
