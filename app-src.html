@@ -449,7 +449,14 @@
       <button class="seg-btn sel" data-jgset="6">Doble-6</button>
       <button class="seg-btn" data-jgset="9">Doble-9</button>
     </div>
-    <button class="seg-btn sel hidden" id="jg-bots" style="margin-top:10px;width:100%">🤖 Rellenar con la computadora: SÍ</button>
+    <p class="set-section hidden" id="t-jgcuantos" style="margin:10px 0 6px">¿Cuántas personas van a jugar?</p>
+    <div class="seg-row hidden" id="jg-humanosrow">
+      <button class="seg-btn" data-humanos="1">1</button>
+      <button class="seg-btn" data-humanos="2">2</button>
+      <button class="seg-btn" data-humanos="3">3</button>
+      <button class="seg-btn sel" data-humanos="4">4</button>
+    </div>
+    <p class="set-note hidden" id="jg-humanos-nota" style="text-align:center;margin-top:6px"></p>
   </div>
 </div>
 
@@ -741,7 +748,9 @@ var I18N = {
     ladoTitle:'¿Por cuál punta?', otraMano:'Repartir otra mano', verMarcador:'Ver el marcador',
     mesaSec:'Color de la mesa', nombreTitle:'¿Cómo te llamas?', nombrePh:'Tu nombre', nombreOk:'¡Listo!',
     jgLibre:'Puesto libre', jgTu:'tú',
-    jgBots:'🤖 Rellenar con la computadora: ', si:'SÍ', no:'NO',
+    jgCuantos:'¿Cuántas personas van a jugar?',
+    jgSentadas:'Sentadas: {n} de {e}', jgCompus:'la computadora pone {n} 🤖',
+    jgFaltanPersonas:'Hay {n} personas sentadas y elegiste {e} — que se sienten todas (o cambia el número).',
     gritoSec:'El grito de ¡POLLONA!',
     gritoNone:'Sin grito grabado. ¡Graba tu POLLONAAA con el micrófono para que suene junto a las gallinas! 🎤',
     gritoHave:'🎤 Grito grabado ✓ — así sonará cada pollona.',
@@ -829,7 +838,9 @@ var I18N = {
     ladoTitle:'Which end?', otraMano:'Deal another hand', verMarcador:'See the scoreboard',
     mesaSec:'Table color', nombreTitle:'What is your name?', nombrePh:'Your name', nombreOk:'Done!',
     jgLibre:'Open seat', jgTu:'you',
-    jgBots:'🤖 Fill with the computer: ', si:'YES', no:'NO',
+    jgCuantos:'How many people will play?',
+    jgSentadas:'Seated: {n} of {e}', jgCompus:'the computer adds {n} 🤖',
+    jgFaltanPersonas:'{n} people are seated but you chose {e} — everyone sit down (or change the number).',
     gritoSec:'The ¡POLLONA! shout',
     gritoNone:'No shout recorded. Record your POLLONAAA with the mic so it plays along with the hens! 🎤',
     gritoHave:'🎤 Shout recorded ✓ — every pollona will sound like this.',
@@ -926,7 +937,12 @@ function applySettings(){
   $('jg-sentarme').textContent = t('jgSentarme');
   $('jg-repartir').textContent = t('jgRepartir');
   $('jg-pasar').textContent = t('jgPasar');
-  $('jg-bots').textContent = t('jgBots') + (botsRelleno ? t('si') : t('no'));
+  $('t-jgcuantos').textContent = t('jgCuantos');
+  if(typeof humanosSel !== 'undefined'){
+    document.querySelectorAll('[data-humanos]').forEach(function(b){
+      b.classList.toggle('sel', parseInt(b.dataset.humanos, 10) === humanosSel);
+    });
+  }
   $('t-ladotitle').textContent = t('ladoTitle');
   $('t-mesa').textContent = t('mesaSec');
   $('t-nombretitle').textContent = t('nombreTitle');
@@ -1832,26 +1848,37 @@ $('nombre-ok').addEventListener('click', function(){
   reclamarAsiento(n);
 });
 $('nombre-cancel').addEventListener('click', function(){ $('ov-nombre').classList.add('hidden'); });
-var botsRelleno = true;
+var humanosSel = 4;
+try{
+  var _h = parseInt(localStorage.getItem('apuntes-domino-humanos'), 10);
+  if(_h >= 1 && _h <= 4) humanosSel = _h;
+}catch(e){}
+function humanosSentados(){
+  var n = 0;
+  if(JUEGO && JUEGO.asientos)
+    for(var k in JUEGO.asientos)
+      if(JUEGO.asientos[k] && !JUEGO.asientos[k].bot) n++;
+  return n;
+}
 function repartir(){
   if(!SALA) return;
-  var asientosFinal = {};
-  for(var k0 in (JUEGO && JUEGO.asientos) || {}){
-    if(JUEGO.asientos[k0]) asientosFinal[k0] = JUEGO.asientos[k0];
-  }
-  var n = 0; for(var k1 in asientosFinal) n++;
-  if(botsRelleno){
-    /* la computadora ocupa los puestos que falten hasta 4 */
-    for(var i = 0; i < 4; i++){
-      if(!asientosFinal[i]){
-        asientosFinal[i] = { uid: 'bot-' + i, nombre: '🤖 Compu ' + (i + 1), bot: true };
-      }
-    }
-    n = 4;
-  }else if(n !== 2 && n !== 4){
-    $('jg-estado').textContent = t('jgFaltan');
+  /* deben estar sentadas exactamente las personas elegidas */
+  if(humanosSentados() !== humanosSel){
+    $('jg-estado').textContent = t('jgFaltanPersonas')
+      .replace('{n}', humanosSentados()).replace('{e}', humanosSel);
     return;
   }
+  var asientosFinal = {};
+  for(var k0 in (JUEGO && JUEGO.asientos) || {}){
+    if(JUEGO.asientos[k0] && !JUEGO.asientos[k0].bot) asientosFinal[k0] = JUEGO.asientos[k0];
+  }
+  /* la computadora completa la mesa hasta 4 */
+  for(var i = 0; i < 4; i++){
+    if(!asientosFinal[i]){
+      asientosFinal[i] = { uid: 'bot-' + i, nombre: '🤖 Compu ' + (i + 1), bot: true };
+    }
+  }
+  var n = 4;
   var porJug = jgSet === 9 ? 10 : 7;
   var cartas = barajar(mazo(jgSet));
   var manos = {};
@@ -2042,12 +2069,20 @@ function renderJuego(){
   var estadoTxt = '';
   var sentado = seat >= 0;
   $('jg-sentarme').classList.toggle('hidden', sentado);
-  var puedeRepartir = sentado && (!JUEGO || JUEGO.estado !== 'jugando') &&
-                      (botsRelleno ? asientosOcupados() >= 1
-                                   : (asientosOcupados() === 2 || asientosOcupados() === 4));
-  $('jg-repartir').classList.toggle('hidden', !puedeRepartir);
-  $('jg-setrow').classList.toggle('hidden', !puedeRepartir);
-  $('jg-bots').classList.toggle('hidden', !puedeRepartir);
+  var preJuego = sentado && (!JUEGO || JUEGO.estado !== 'jugando');
+  var puedeRepartir = preJuego && humanosSentados() === humanosSel;
+  $('jg-repartir').classList.toggle('hidden', !preJuego);
+  $('jg-repartir').disabled = !puedeRepartir;
+  $('jg-setrow').classList.toggle('hidden', !preJuego);
+  $('t-jgcuantos').classList.toggle('hidden', !preJuego);
+  $('jg-humanosrow').classList.toggle('hidden', !preJuego);
+  $('jg-humanos-nota').classList.toggle('hidden', !preJuego);
+  if(preJuego){
+    var compus = 4 - humanosSel;
+    $('jg-humanos-nota').textContent =
+      t('jgSentadas').replace('{n}', humanosSentados()).replace('{e}', humanosSel) +
+      (compus > 0 ? ' · ' + t('jgCompus').replace('{n}', compus) : '');
+  }
   var miTurno = JUEGO && JUEGO.estado === 'jugando' && JUEGO.turno === seat;
   $('jg-pasar').classList.toggle('hidden', !(JUEGO && JUEGO.estado === 'jugando' && sentado));
 
@@ -2183,11 +2218,13 @@ $('herr-virar').addEventListener('click', function(){
 $('herr-izq').addEventListener('click', function(){ moverFicha(-1); });
 $('herr-der').addEventListener('click', function(){ moverFicha(1); });
 $('herr-x').addEventListener('click', function(){ manoSel = null; renderJuego(); });
-$('jg-bots').addEventListener('click', function(){
-  botsRelleno = !botsRelleno;
-  this.classList.toggle('sel', botsRelleno);
-  this.textContent = t('jgBots') + (botsRelleno ? t('si') : t('no'));
-  renderJuego();
+document.querySelectorAll('[data-humanos]').forEach(function(b){
+  b.addEventListener('click', function(){
+    humanosSel = parseInt(b.dataset.humanos, 10);
+    try{ localStorage.setItem('apuntes-domino-humanos', String(humanosSel)); }catch(e){}
+    document.querySelectorAll('[data-humanos]').forEach(function(o){ o.classList.toggle('sel', o === b); });
+    renderJuego();
+  });
 });
 
 /* --- eventos del juego --- */
