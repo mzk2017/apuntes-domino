@@ -24,9 +24,10 @@ dist.mkdir(exist_ok=True)
 (dist / "app.html").write_text(src, encoding="utf-8")
 
 full = f"""<!doctype html>
-<html lang="es">
+<html lang="es" translate="no">
 <head>
 <meta charset="utf-8">
+<meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17402E">
 <link rel="manifest" href="manifest.json">

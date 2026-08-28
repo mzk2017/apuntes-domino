@@ -71,9 +71,12 @@
   .meta-chip b{color:var(--gold)}
   .icon-btn{font-size:1rem;font-weight:700;color:var(--bone-dim);padding:8px 12px;border-radius:12px;border:1.5px solid var(--line);background:rgba(0,0,0,.2)}
 
-  .board{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;min-height:0}
-  .col{display:flex;flex-direction:column;background:rgba(0,0,0,.22);border:1.5px solid var(--line);border-radius:20px;padding:14px 12px;min-height:0}
-  .col-name{font-weight:700;font-size:1.02rem;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-bottom:2px}
+  /* minmax(0,1fr) + min-width:0 = las columnas NO se salen de la pantalla
+     aunque los nombres de las parejas sean largos */
+  .board{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;flex:1;min-height:0}
+  .col{display:flex;flex-direction:column;background:rgba(0,0,0,.22);border:1.5px solid var(--line);border-radius:20px;padding:14px 12px;min-height:0;min-width:0}
+  .col-name{font-weight:700;font-size:.95rem;text-align:center;line-height:1.25;padding-bottom:2px;
+            overflow:hidden;word-break:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;max-height:2.5em}
   .col.red .col-name{color:var(--red)} .col.blue .col-name{color:var(--blue)}
   .total{font-family:'Lilita One',cursive;font-size:3.4rem;line-height:1.05;text-align:center;font-variant-numeric:tabular-nums;text-shadow:0 3px 0 rgba(0,0,0,.3)}
   .progress{height:8px;border-radius:99px;background:rgba(0,0,0,.35);margin:10px 4px;overflow:hidden}
@@ -164,6 +167,16 @@
   .jg-cadena.serp{display:block;position:relative;flex:none;padding:0}
   .jg-cadena.serp .fch{position:absolute}
   /* fichitas boca abajo de los rivales */
+  /* parejas y amigos favoritos */
+  .parejas-chip{text-align:center;font-weight:700;font-size:.95rem;line-height:1.6;
+                background:rgba(0,0,0,.25);border:1.5px solid var(--line);border-radius:14px;padding:10px 8px}
+  .parejas-chip .eqA{color:var(--red)} .parejas-chip .eqB{color:var(--blue)}
+  .parejas-chip .vs{color:var(--bone-dim);font-size:.8rem;margin:0 6px}
+  .amigo-fila{display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px dashed var(--line)}
+  .amigo-fila .nom{flex:1;font-weight:700;text-align:left}
+  .amigo-fila .mark{font-size:1.1rem;width:1.6em;text-align:center}
+  .amigo-fila.puesto{background:rgba(232,180,74,.16);border-radius:10px}
+  .amigo-fila .quitar{color:var(--bone-dim);padding:4px 8px;border-radius:8px}
   .fb{display:inline-block;width:8px;height:14px;background:linear-gradient(#EAE2CE 46%,#221D15 46%,#221D15 54%,#EAE2CE 54%);border:1.5px solid #221D15;border-radius:2px;margin:0 1px;vertical-align:middle}
   /* la cadena se achica sola cuando crece, para que SIEMPRE quepa entera */
   .jg-cadena.peq .fch.h{width:46px;height:24px} .jg-cadena.peq .fch.v{width:24px;height:46px}
@@ -322,7 +335,7 @@
     <h2 class="hist-title">🏠 <span id="t-settings">Inicio</span></h2>
   </div>
   <div style="flex:1;overflow-y:auto;min-height:0">
-    <button class="big-btn" id="home-play" style="margin:4px 0 10px">🁢 Jugar</button>
+    <button class="big-btn" id="home-play" style="margin:4px 0 10px">🎲 Jugar</button>
     <button class="ghost-link hidden" id="home-new" style="margin:0 0 10px;width:100%">✨ Partida nueva</button>
     <button class="ghost-link" id="btn-salas" style="margin:0 0 10px;width:100%;border-color:var(--blue);color:var(--blue)">👥 Salas con amigos</button>
     <button class="ghost-link" id="btn-history-home" style="margin:0;width:100%">📜 Historial de partidas</button>
@@ -386,7 +399,7 @@
       <img src="%%QR%%" alt="Código QR de la app" style="width:180px;height:180px;border-radius:12px;background:#fff;padding:6px">
       <p class="set-note" id="t-qrnote">…o que escaneen este código con la cámara del teléfono</p>
     </div>
-    <p class="set-note" id="t-installnote" style="line-height:1.5">📱 Para el iconito 🁢 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".</p>
+    <p class="set-note" id="t-installnote" style="line-height:1.5">📱 Para el iconito 🎲 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".</p>
     <p class="set-note" style="text-align:center;margin-top:22px;opacity:.7">© 2026 Domino Cubano Counter · Todos los derechos reservados<br>Prohibida su venta o redistribución</p>
   </div>
 </div>
@@ -483,6 +496,26 @@
       <button class="seg-btn" data-jgbots="0">No</button>
     </div>
     <p class="set-note hidden" id="jg-humanos-nota" style="text-align:center;margin-top:6px"></p>
+    <div class="hidden" id="jg-parejas-box" style="margin-top:12px">
+      <p class="set-section" id="t-jgparejas" style="margin:0 0 6px">Parejas</p>
+      <div class="parejas-chip" id="jg-parejas"></div>
+      <button class="menu-btn" id="jg-cambiar-parejas" style="margin-top:8px">🔄 <span id="t-jgcambiarparejas">Cambiar parejas</span></button>
+    </div>
+    <button class="menu-btn hidden" id="jg-amigos" style="margin-top:12px">⭐ <span id="t-jgamigos">Mis amigos</span></button>
+  </div>
+</div>
+
+<!-- lista de amigos favoritos: se les guarda el puesto -->
+<div class="overlay hidden" id="ov-amigos">
+  <div class="sheet">
+    <p class="sheet-title"><b id="t-amigostitle">⭐ Mis amigos</b></p>
+    <p class="set-note" id="t-amigosnota" style="margin:0 0 10px">Toca un amigo para guardarle su puesto en la mesa.</p>
+    <div id="amigos-lista"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <input class="name-input" id="amigo-nuevo" maxlength="14" placeholder="Nombre del amigo" autocomplete="off" style="flex:1">
+      <button class="menu-btn" id="amigo-add" style="flex:0 0 auto;padding:12px 16px">➕</button>
+    </div>
+    <button class="big-btn" id="amigos-ok" style="margin:12px 0 0;padding:14px 0;font-size:1.15rem">¡Listo!</button>
   </div>
 </div>
 
@@ -490,6 +523,7 @@
 <div class="overlay hidden" id="ov-nombre">
   <div class="sheet">
     <p class="sheet-title"><b id="t-nombretitle">¿Cómo te llamas?</b></p>
+    <div id="nombre-reservados"></div>
     <input class="name-input" id="mi-nombre" maxlength="14" placeholder="Tu nombre" autocomplete="off">
     <button class="big-btn" id="nombre-ok" style="margin:12px 0 0;padding:14px 0;font-size:1.2rem">¡Listo!</button>
     <button class="kp-cancel" id="nombre-cancel">Cancelar</button>
@@ -524,7 +558,7 @@
     </div>
     <p class="set-note" id="fm-nota" style="text-align:center;margin-top:6px"></p>
     <div class="fx-actions">
-      <button class="fx-btn" id="finmano-otra">🁢 <span id="t-otramano">Repartir otra mano</span></button>
+      <button class="fx-btn" id="finmano-otra">🎲 <span id="t-otramano">Repartir otra mano</span></button>
       <button class="fx-btn ghost" id="finmano-marcador">📊 <span id="t-vermarcador">Ver el marcador</span></button>
     </div>
   </div>
@@ -539,7 +573,7 @@
       <p class="count-hint" id="sala-info" style="font-size:1.05rem;font-weight:700">—</p>
       <p class="count-hint" id="t-salahint">Todos los que entren ven el marcador en vivo en su teléfono.</p>
       <div class="menu-list" style="margin-top:10px">
-        <button class="menu-btn" id="sala-jugar" style="border:2px solid var(--gold)">🁢 <span id="t-salajugar">Jugar dominó aquí en la app</span></button>
+        <button class="menu-btn" id="sala-jugar" style="border:2px solid var(--gold)">🎲 <span id="t-salajugar">Jugar dominó aquí en la app</span></button>
         <button class="menu-btn" id="sala-invitar">📤 <span id="t-salainvitar">Invitar amigos</span></button>
         <button class="menu-btn" id="sala-salir">🚪 <span id="t-salasalir">Salir de la sala</span></button>
       </div>
@@ -565,7 +599,7 @@
   <div class="sheet">
     <p class="sheet-title"><b id="t-menu">Menú</b></p>
     <div class="menu-list">
-      <button class="menu-btn" id="menu-rematch">🁢 Otra partida (mismos jugadores)</button>
+      <button class="menu-btn" id="menu-rematch">🎲 Otra partida (mismos jugadores)</button>
       <button class="menu-btn" id="menu-newplayers">👥 Cambiar jugadores y meta</button>
       <button class="menu-btn" id="menu-history">📜 Historial de partidas</button>
     </div>
@@ -663,7 +697,7 @@
     <div class="fx-name" id="win-name">—</div>
     <p class="fx-sub" id="win-score">—</p>
     <div class="fx-actions">
-      <button class="fx-btn" id="btn-rematch">🁢 Revancha</button>
+      <button class="fx-btn" id="btn-rematch">🎲 Revancha</button>
       <button class="fx-btn ghost" id="btn-newplayers">Cambiar jugadores</button>
     </div>
   </div>
@@ -677,7 +711,7 @@
     <div class="fx-name" id="pol-name">—</div>
     <p class="fx-sub" id="pol-sub">¡Se comieron el pollo enterito!</p>
     <div class="fx-actions">
-      <button class="fx-btn" id="btn-rematch2">🁢 Revancha</button>
+      <button class="fx-btn" id="btn-rematch2">🎲 Revancha</button>
       <button class="fx-btn ghost" id="btn-newplayers2">Cambiar jugadores</button>
     </div>
   </div>
@@ -687,6 +721,21 @@
 
 <script>
 'use strict';
+/* El traductor automático de Chrome destrozaba los textos del juego
+   ("¡No llevo!" salía como "I'm not wearing one!"). La app ya tiene sus
+   propios idiomas, así que le decimos al navegador que no traduzca nada. */
+(function noTraducir(){
+  try{
+    var h = document.documentElement;
+    h.setAttribute('translate', 'no');
+    h.classList.add('notranslate');
+    if(!document.querySelector('meta[name="google"][content="notranslate"]')){
+      var m = document.createElement('meta');
+      m.name = 'google'; m.content = 'notranslate';
+      (document.head || h).appendChild(m);
+    }
+  }catch(e){}
+})();
 /* ============ sonidos (Mixkit, licencia libre — incrustados) ============ */
 var SND_FANFARE = "%%FANFARE%%";
 var SND_APPLAUSE = "%%APPLAUSE%%";
@@ -732,14 +781,14 @@ var I18N = {
     ph1:'Ej: Los Tigres', ph2:'Ej: Los Leones',
     playTo:'Jugamos a…', otherGoal:'Otra meta (ej: 250)',
     play:'¡A jugar!', historyBtn:'📜 Historial de partidas', settingsBtn:'🏠 Inicio',
-    home:'Inicio', playNow:'🁢 Jugar', continueGame:'🁢 Seguir la partida', newGame:'✨ Partida nueva',
+    home:'Inicio', playNow:'🎲 Jugar', continueGame:'🎲 Seguir la partida', newGame:'✨ Partida nueva',
     goal:'Meta', add:'+ Anotar', noPoints:'Sin puntos todavía',
     pointsFor:'Puntos para', sum:'Sumar', cancel:'Cancelar', close:'✕ Cerrar',
-    menu:'Menú', again:'🁢 Otra partida (mismos jugadores)', changeAll:'👥 Cambiar jugadores y meta',
-    winner:'¡GANADOR!', rematch:'🁢 Revancha', newPlayers:'Cambiar jugadores',
+    menu:'Menú', again:'🎲 Otra partida (mismos jugadores)', changeAll:'👥 Cambiar jugadores y meta',
+    winner:'¡GANADOR!', rematch:'🎲 Revancha', newPlayers:'Cambiar jugadores',
     polWon:'¡Ganó {n}!', polSub:'{n} se quedó en cero. ¡Pa’ la olla!',
     histTitle:'Historial', back:'‹ Volver', record:'Récord por jugador', games:'Partidas',
-    empty:'Todavía no hay partidas terminadas. ¡A jugar! 🁢',
+    empty:'Todavía no hay partidas terminadas. ¡A jugar! 🎲',
     clear:'Borrar historial', sure:'¿Seguro? Toca otra vez para borrar', metaWord:'meta',
     w:'G', l:'P', polBadge:'🐔 ¡pollona!',
     camTitle:'Contar fichas con foto', camLive:'📸 Usar la cámara aquí mismo',
@@ -767,7 +816,7 @@ var I18N = {
     salaConectando:'Conectando…', salaNoExiste:'Esa sala no existe — revisa el código.',
     salaCodigoMal:'Escribe el código de la sala (5 letras/números).',
     salaErrRed:'No se pudo conectar — revisa tu internet e intenta de nuevo.',
-    salaInviteTxt:'¡Únete a mi sala de dominó "{n}"! Abre el enlace y entra directo. 🁢',
+    salaInviteTxt:'¡Únete a mi sala de dominó "{n}"! Abre el enlace y entra directo. 🎲',
     salaJugar:'Jugar dominó aquí en la app',
     jgVolver:'Marcador', jgSientate:'Toca "Sentarme a jugar" para ocupar un puesto.',
     jgEsperando:'Esperando más jugadores… (se juega con 2 o 4)',
@@ -788,6 +837,12 @@ var I18N = {
     jgCuantos:'¿Cuántas personas van a jugar?',
     fmCuantos:'¿Cuántas personas juegan la próxima?',
     jgSentadas:'Sentadas: {n} de {e}', jgCompus:'la computadora pone {n} 🤖',
+    jgParejas:'Parejas', jgCambiarParejas:'Cambiar parejas', jgVs:'contra',
+    jgAmigos:'Mis amigos', jgAmigosTitulo:'⭐ Mis amigos',
+    jgAmigosNota:'Toca un amigo para guardarle su puesto en la mesa.',
+    jgAmigosVacio:'Todavía no has puesto amigos. Escribe el nombre abajo y toca ➕',
+    jgReservado:'guardado para {n}', jgSoyYo:'Soy {n}',
+    jgQuienEres:'¿Quién eres?', jgOtroNombre:'Otro nombre…',
     jgBotsQ:'¿Juega la computadora?', jgBotsSi:'Sí 🤖', jgBotsNo:'No',
     jgBotsForzada:'con {n} en la mesa, la computadora completa',
     jgCancelar:'✖ Cancelar juego',
@@ -810,13 +865,13 @@ var I18N = {
     fullRetry:'Quedó lejos del total — intenta otra foto con mejor luz o más de cerca.',
     learnSec:'Aprendizaje del contador', learnReset:'Reiniciar aprendizaje',
     installBtn:'📲 Instalar la app en este teléfono',
-    iosSteps:'En iPhone: abre la app en Safari, toca el botón de compartir (el cuadrito con la flecha ↑, abajo) y elige "Agregar a inicio". Te queda el iconito 🁢 y abre sin navegador.',
+    iosSteps:'En iPhone: abre la app en Safari, toca el botón de compartir (el cuadrito con la flecha ↑, abajo) y elige "Agregar a inicio". Te queda el iconito 🎲 y abre sin navegador.',
     androidSteps:'En Android: abre la app en Chrome, toca los tres puntitos ⋮ arriba a la derecha y elige "Agregar a pantalla principal".',
     shareSec:'Compartir la app', shareBtn:'Enviar el enlace a un amigo',
     shareCopied:'✅ Enlace copiado — pégalo en WhatsApp o donde quieras.',
     qrNote:'…o que escaneen este código con la cámara del teléfono',
-    installNote:'📱 Para el iconito 🁢 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".',
-    shareText:'Domino Cubano Counter — la libreta de puntos para el dominó 🁢🐔',
+    installNote:'📱 Para el iconito 🎲 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".',
+    shareText:'Domino Cubano Counter — la libreta de puntos para el dominó 🎲🐔',
     learnNone:'Aún sin correcciones. Cuando corrijas un conteo con − / +, la app aprende sola.',
     learnStatus:'📚 {n} correcciones aprendidas · ahora cuento: ', learnCleared:'Aprendizaje reiniciado.',
     sensMore:'con más sensibilidad', sensLess:'con más cuidado', sensNormal:'normal'
@@ -827,14 +882,14 @@ var I18N = {
     ph1:'e.g. The Tigers', ph2:'e.g. The Lions',
     playTo:'Playing to…', otherGoal:'Other goal (e.g. 250)',
     play:'Let’s play!', historyBtn:'📜 Game history', settingsBtn:'🏠 Home',
-    home:'Home', playNow:'🁢 Play', continueGame:'🁢 Continue game', newGame:'✨ New game',
+    home:'Home', playNow:'🎲 Play', continueGame:'🎲 Continue game', newGame:'✨ New game',
     goal:'Goal', add:'+ Add points', noPoints:'No points yet',
     pointsFor:'Points for', sum:'Add', cancel:'Cancel', close:'✕ Close',
-    menu:'Menu', again:'🁢 Play again (same players)', changeAll:'👥 Change players & goal',
-    winner:'WINNER!', rematch:'🁢 Rematch', newPlayers:'Change players',
+    menu:'Menu', again:'🎲 Play again (same players)', changeAll:'👥 Change players & goal',
+    winner:'WINNER!', rematch:'🎲 Rematch', newPlayers:'Change players',
     polWon:'{n} wins!', polSub:'{n} ended with zero. Into the pot!',
     histTitle:'History', back:'‹ Back', record:'Player records', games:'Games',
-    empty:'No finished games yet. Let’s play! 🁢',
+    empty:'No finished games yet. Let’s play! 🎲',
     clear:'Clear history', sure:'Sure? Tap again to delete', metaWord:'goal',
     w:'W', l:'L', polBadge:'🐔 pollona!',
     camTitle:'Count tiles with a photo', camLive:'📸 Use the camera right here',
@@ -862,7 +917,7 @@ var I18N = {
     salaConectando:'Connecting…', salaNoExiste:'That room does not exist — check the code.',
     salaCodigoMal:'Type the room code (5 letters/numbers).',
     salaErrRed:'Could not connect — check your internet and try again.',
-    salaInviteTxt:'Join my domino room "{n}"! Open the link to jump right in. 🁢',
+    salaInviteTxt:'Join my domino room "{n}"! Open the link to jump right in. 🎲',
     salaJugar:'Play dominoes here in the app',
     jgVolver:'Scoreboard', jgSientate:'Tap "Take a seat" to join the table.',
     jgEsperando:'Waiting for more players… (2 or 4 play)',
@@ -883,6 +938,12 @@ var I18N = {
     jgCuantos:'How many people will play?',
     fmCuantos:'How many people play the next one?',
     jgSentadas:'Seated: {n} of {e}', jgCompus:'the computer adds {n} 🤖',
+    jgParejas:'Teams', jgCambiarParejas:'Change teams', jgVs:'vs',
+    jgAmigos:'My friends', jgAmigosTitulo:'⭐ My friends',
+    jgAmigosNota:'Tap a friend to save their seat at the table.',
+    jgAmigosVacio:'No friends yet. Type a name below and tap ➕',
+    jgReservado:'saved for {n}', jgSoyYo:"I'm {n}",
+    jgQuienEres:'Who are you?', jgOtroNombre:'Another name…',
     jgBotsQ:'Does the computer play?', jgBotsSi:'Yes 🤖', jgBotsNo:'No',
     jgBotsForzada:'with {n} at the table, the computer fills in',
     jgCancelar:'✖ Cancel game',
@@ -905,13 +966,13 @@ var I18N = {
     fullRetry:'Still far from the total — try another photo with better light or closer.',
     learnSec:'Counter learning', learnReset:'Reset learning',
     installBtn:'📲 Install the app on this phone',
-    iosSteps:'On iPhone: open the app in Safari, tap the share button (the square with the ↑ arrow, at the bottom) and choose "Add to Home Screen". You get the 🁢 icon and it opens without the browser.',
+    iosSteps:'On iPhone: open the app in Safari, tap the share button (the square with the ↑ arrow, at the bottom) and choose "Add to Home Screen". You get the 🎲 icon and it opens without the browser.',
     androidSteps:'On Android: open the app in Chrome, tap the three dots ⋮ at the top right and choose "Add to Home screen".',
     shareSec:'Share the app', shareBtn:'Send the link to a friend',
     shareCopied:'✅ Link copied — paste it in WhatsApp or anywhere.',
     qrNote:'…or have them scan this code with the phone camera',
-    installNote:'📱 For the 🁢 icon on the home screen: Android (Chrome): ⋮ → "Add to Home screen". iPhone (Safari): share button → "Add to Home Screen".',
-    shareText:'Domino Cubano Counter — the score pad for dominoes 🁢🐔',
+    installNote:'📱 For the 🎲 icon on the home screen: Android (Chrome): ⋮ → "Add to Home screen". iPhone (Safari): share button → "Add to Home Screen".',
+    shareText:'Domino Cubano Counter — the score pad for dominoes 🎲🐔',
     learnNone:'No corrections yet. When you fix a count with − / +, the app learns by itself.',
     learnStatus:'📚 {n} corrections learned · now counting: ', learnCleared:'Learning reset.',
     sensMore:'more sensitively', sensLess:'more carefully', sensNormal:'normally'
@@ -1792,11 +1853,16 @@ function dibujaCadena(fichas){
   }
   var maxW = Math.max(160, wrap.clientWidth - 24);
   var maxH = Math.max(140, wrap.clientHeight - 24);
-  var tiers = [[64, 32, ''], [46, 23, 'peq'], [34, 17, 'mini'], [26, 13, 'mini']];
+  /* de mayor a menor: se usa el más grande que quepa en la mesa */
+  var tiers = [[86, 43, ''], [72, 36, ''], [64, 32, ''], [54, 27, 'peq'],
+               [46, 23, 'peq'], [38, 19, 'mini'], [34, 17, 'mini'], [26, 13, 'mini']];
 
   function calcular(L, S){
     /* Fichas pegaditas en la fila; las filas separadas lo justo para que
-       un doble (que sobresale) NO se monte con la fila de abajo. */
+       un doble (que sobresale) NO se monte con la fila de abajo.
+       Cada fila termina dejando libre el ancho de una ficha parada (S),
+       que es el hueco donde va la ficha de la vuelta: así nunca hay que
+       encajarla encima de la anterior. */
     var sep = 5;
     var pitch = L / 2 + S / 2 + sep;   /* distancia entre filas */
     var sobra = (L - S) / 2;           /* lo que sobresale un doble */
@@ -1805,27 +1871,56 @@ function dibujaCadena(fichas){
       var f = fichas[i];
       var doble = f.a === f.b;
       var wT = doble ? S : L;
-      var cabe = dx === 1 ? (x + wT <= maxW) : (x - wT >= 0);
+      var cabe = dx === 1 ? (x + wT <= maxW - S) : (x - wT >= S);
       var rowTop = sobra + row * pitch;          /* borde superior de la fila */
       var rowMid = rowTop + S / 2;               /* línea central de la fila */
       if(!cabe && pos.length){
-        /* la vuelta: ficha vertical en la orilla que enlaza las dos filas */
-        var tx = dx === 1 ? Math.min(x, maxW - S) : Math.max(x - S, 0);
-        pos.push({x: tx, y: rowTop, w: S, h: pitch + S, vert: true, flip: false, f: f});
+        /* la vuelta: ficha parada en la orilla, del mismo tamaño que
+           cualquier otra, que baja hasta enlazar con la fila siguiente */
+        var tx = dx === 1 ? x : x - S;
+        pos.push({x: tx, y: rowMid - L / 2, w: S, h: L, vert: true, flip: false, f: f, row: row});
         row++; dx = -dx;
         x = dx === 1 ? tx + S : tx;
         continue;
       }
       if(doble){
         /* atravesado y centrado en la línea de la fila */
-        pos.push({x: dx === 1 ? x : x - S, y: rowMid - L / 2, w: S, h: L, vert: true, flip: false, f: f});
+        pos.push({x: dx === 1 ? x : x - S, y: rowMid - L / 2, w: S, h: L, vert: true, flip: false, f: f, row: row});
         x += dx * S;
       }else{
-        pos.push({x: dx === 1 ? x : x - L, y: rowTop, w: L, h: S, vert: false, flip: dx === -1, f: f});
+        pos.push({x: dx === 1 ? x : x - L, y: rowTop, w: L, h: S, vert: false, flip: dx === -1, f: f, row: row});
         x += dx * L;
       }
     }
-    return { pos: pos, alto: sobra + row * pitch + S + sobra, filas: row + 1 };
+    /* Segunda pasada: dos fichas paradas (un doble y la ficha de la vuelta,
+       por ejemplo) pueden coincidir en la misma columna en filas seguidas y
+       tocarse. Aquí se separan SOLO las filas que lo necesiten. */
+    var porFila = {};
+    pos.forEach(function(p){ (porFila[p.row] = porFila[p.row] || []).push(p); });
+    var acum = 0;
+    for(var r2 = 1; r2 <= row; r2++){
+      var abajo = porFila[r2] || [], arriba = porFila[r2 - 1] || [];
+      abajo.forEach(function(p){ p.y += acum; });
+      var extra = 0;
+      arriba.forEach(function(A){
+        abajo.forEach(function(B){
+          var ox = Math.min(A.x + A.w, B.x + B.w) - Math.max(A.x, B.x);
+          if(ox > 0.5){
+            var falta = (A.y + A.h + sep) - B.y;
+            if(falta > extra) extra = falta;
+          }
+        });
+      });
+      if(extra > 0){
+        abajo.forEach(function(p){ p.y += extra; });
+        acum += extra;
+      }
+    }
+    var fondo = 0, techo = 1e9;
+    pos.forEach(function(p){ fondo = Math.max(fondo, p.y + p.h); techo = Math.min(techo, p.y); });
+    /* que nada quede con y negativa (un doble en la primera fila sobresale) */
+    if(techo < 0) pos.forEach(function(p){ p.y -= techo; });
+    return { pos: pos, alto: fondo - Math.min(0, techo) + 2, filas: row + 1 };
   }
 
   var elegido = null, tierCls = '';
@@ -1883,7 +1978,11 @@ function miAsiento(){
 }
 function asientosOcupados(){
   var n = 0;
-  if(JUEGO && JUEGO.asientos) for(var k in JUEGO.asientos) if(JUEGO.asientos[k]) n++;
+  if(JUEGO && JUEGO.asientos)
+    for(var k in JUEGO.asientos){
+      var a = JUEGO.asientos[k];
+      if(a && (a.uid || a.bot)) n++;   /* los puestos guardados no cuentan */
+    }
   return n;
 }
 function equipoDe(seat, nJug){ return (nJug === 4) ? (seat % 2) : seat; }
@@ -1962,24 +2061,45 @@ function sentarme(){
   if(!SALA || fbState !== 'ready') return;
   if(miAsiento() >= 0) return;
   if(JUEGO && JUEGO.estado === 'jugando') return;   /* no sentarse a mitad de mano */
-  /* primero: ¿cómo te llamas? */
+  /* primero: ¿cómo te llamas? Si hay puestos guardados para amigos,
+     se ofrecen de un toque ("Soy Nelson") */
   var guardado = '';
   try{ guardado = localStorage.getItem(NOMBRE_KEY) || ''; }catch(e){}
   $('mi-nombre').value = guardado;
+  var cont = $('nombre-reservados'); cont.innerHTML = '';
+  var res = reservados(), nombres = Object.keys(res);
+  $('t-nombretitle').textContent = nombres.length ? t('jgQuienEres') : t('nombreTitle');
+  nombres.forEach(function(n){
+    var b = document.createElement('button');
+    b.className = 'menu-btn';
+    b.style.cssText = 'margin-bottom:8px;border:2px solid var(--gold)';
+    b.textContent = '🪑 ' + t('jgSoyYo').replace('{n}', n);
+    b.addEventListener('click', function(){
+      $('ov-nombre').classList.add('hidden');
+      reclamarAsiento(n);
+    });
+    cont.appendChild(b);
+  });
   $('ov-nombre').classList.remove('hidden');
-  setTimeout(function(){ $('mi-nombre').focus(); }, 100);
+  if(!nombres.length) setTimeout(function(){ $('mi-nombre').focus(); }, 100);
 }
 function reclamarAsiento(nombre){
   try{ localStorage.setItem(NOMBRE_KEY, nombre); }catch(e){}
   /* reserva atómica del asiento: si dos personas tocan a la vez,
-     solo una se queda con el puesto y la otra pasa al siguiente */
-  function intenta(i){
-    if(i >= 4) return;
-    fbDB.ref('rooms/' + SALA.code + '/juego/asientos/' + i).transaction(function(cur){
+     solo una se queda con el puesto y la otra pasa al siguiente.
+     Si hay un puesto guardado a mi nombre, ese es el mío. */
+  var mio = reservados()[nombre];
+  var orden = [];
+  if(mio !== undefined) orden.push(mio);
+  for(var i = 0; i < 4; i++) if(i !== mio) orden.push(i);
+  function intenta(k){
+    if(k >= orden.length) return;
+    fbDB.ref('rooms/' + SALA.code + '/juego/asientos/' + orden[k]).transaction(function(cur){
       if(cur === null) return { uid: fbUID, nombre: nombre };
-      return;   /* ocupado: abortar */
+      if(cur && cur.reservado === nombre && !cur.uid) return { uid: fbUID, nombre: nombre };
+      return;   /* ocupado o guardado para otro: abortar */
     }, function(err, committed){
-      if(err || !committed) intenta(i + 1);
+      if(err || !committed) intenta(k + 1);
     });
   }
   intenta(0);
@@ -1995,13 +2115,139 @@ try{
   var _h = parseInt(localStorage.getItem('apuntes-domino-humanos'), 10);
   if(_h >= 1 && _h <= 4) humanosSel = _h;
 }catch(e){}
+/* un puesto "guardado" (reservado para un amigo) todavía no tiene dueño:
+   ocupa sitio en la mesa, pero no cuenta como persona sentada */
+function esPersona(a){ return !!(a && a.uid && !a.bot); }
 function humanosSentados(){
   var n = 0;
   if(JUEGO && JUEGO.asientos)
     for(var k in JUEGO.asientos)
-      if(JUEGO.asientos[k] && !JUEGO.asientos[k].bot) n++;
+      if(esPersona(JUEGO.asientos[k])) n++;
   return n;
 }
+/* ---- amigos favoritos: se les guarda el puesto en la mesa ---- */
+var AMIGOS_KEY = 'apuntes-domino-amigos';
+function cargarAmigos(){
+  try{
+    var a = JSON.parse(localStorage.getItem(AMIGOS_KEY));
+    return Array.isArray(a) ? a : [];
+  }catch(e){ return []; }
+}
+function guardarAmigos(a){
+  try{ localStorage.setItem(AMIGOS_KEY, JSON.stringify(a.slice(0, 20))); }catch(e){}
+}
+function reservados(){
+  var out = {};
+  if(JUEGO && JUEGO.asientos)
+    for(var k in JUEGO.asientos){
+      var a = JUEGO.asientos[k];
+      if(a && a.reservado && !a.uid) out[a.reservado] = parseInt(k, 10);
+    }
+  return out;
+}
+function reservarAmigo(nombre){
+  if(!jgRef || (JUEGO && JUEGO.estado === 'jugando')) return;
+  var res = reservados();
+  if(res[nombre] !== undefined){          /* ya tenía puesto: se lo quito */
+    jgRef.child('asientos/' + res[nombre]).set(null);
+    return;
+  }
+  for(var i = 0; i < 4; i++){             /* primer puesto libre */
+    if(!(JUEGO && JUEGO.asientos && JUEGO.asientos[i])){
+      jgRef.child('asientos/' + i).set({ reservado: nombre });
+      return;
+    }
+  }
+}
+function renderAmigos(){
+  var cont = $('amigos-lista'); cont.innerHTML = '';
+  var amigos = cargarAmigos(), res = reservados();
+  $('t-amigostitle').textContent = t('jgAmigosTitulo');
+  $('t-amigosnota').textContent = t('jgAmigosNota');
+  if(!amigos.length){
+    var v = document.createElement('p');
+    v.className = 'set-note'; v.style.textAlign = 'center';
+    v.textContent = t('jgAmigosVacio');
+    cont.appendChild(v);
+    return;
+  }
+  amigos.forEach(function(nombre){
+    var fila = document.createElement('div');
+    fila.className = 'amigo-fila' + (res[nombre] !== undefined ? ' puesto' : '');
+    var mark = document.createElement('span');
+    mark.className = 'mark';
+    mark.textContent = res[nombre] !== undefined ? '🪑' : '☆';
+    var nom = document.createElement('button');
+    nom.className = 'nom';
+    nom.textContent = nombre;
+    nom.addEventListener('click', function(){ reservarAmigo(nombre); setTimeout(renderAmigos, 250); });
+    var quitar = document.createElement('button');
+    quitar.className = 'quitar'; quitar.textContent = '🗑';
+    quitar.addEventListener('click', function(){
+      if(res[nombre] !== undefined) reservarAmigo(nombre);   /* le suelto el puesto */
+      guardarAmigos(cargarAmigos().filter(function(x){ return x !== nombre; }));
+      setTimeout(renderAmigos, 250);
+    });
+    fila.appendChild(mark); fila.appendChild(nom); fila.appendChild(quitar);
+    cont.appendChild(fila);
+  });
+}
+$('jg-amigos').addEventListener('click', function(){
+  renderAmigos();
+  $('ov-amigos').classList.remove('hidden');
+});
+$('amigos-ok').addEventListener('click', function(){
+  $('ov-amigos').classList.add('hidden');
+  renderJuego();
+});
+$('amigo-add').addEventListener('click', function(){
+  var n = ($('amigo-nuevo').value || '').trim();
+  if(!n) return;
+  var a = cargarAmigos();
+  if(a.indexOf(n) < 0){ a.push(n); guardarAmigos(a); }
+  $('amigo-nuevo').value = '';
+  renderAmigos();
+});
+$('amigo-nuevo').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') $('amigo-add').click();
+});
+/* ---- parejas: con 4 en la mesa hay 3 formas de emparejarse ---- */
+function cambiarParejas(){
+  if(!jgRef || !JUEGO || JUEGO.estado === 'jugando') return;
+  var a = JUEGO.asientos || {};
+  /* mi puesto se queda quieto y los otros tres rotan: así pasan las
+     3 parejas posibles y vuelve a la primera */
+  var yo = miAsiento(); if(yo < 0) yo = 0;
+  var otros = [0, 1, 2, 3].filter(function(s){ return s !== yo; });
+  var upd = {};
+  otros.forEach(function(s, i){
+    upd['asientos/' + s] = a[otros[(i + 1) % 3]] || null;
+  });
+  jgRef.update(upd);
+}
+function nombreDePuesto(s){
+  var a = JUEGO && JUEGO.asientos && JUEGO.asientos[s];
+  if(a && a.uid) return a.nombre + (a.uid === fbUID ? ' (' + t('jgTu') + ')' : '');
+  if(a && a.reservado) return a.reservado;
+  return botsOn() ? t('compu') + ' ' + (s + 1) : '—';
+}
+function renderParejas(){
+  var box = $('jg-parejas-box');
+  var enMesa = botsOn() ? 4 : humanosSel;
+  var muestra = enMesa === 4 && humanosSentados() >= 1;
+  box.classList.toggle('hidden', !muestra);
+  if(!muestra) return;
+  $('t-jgparejas').textContent = t('jgParejas');
+  $('t-jgcambiarparejas').textContent = t('jgCambiarParejas');
+  var c = $('jg-parejas'); c.innerHTML = '';
+  var eqA = document.createElement('span'), vs = document.createElement('span'), eqB = document.createElement('span');
+  eqA.className = 'eqA'; vs.className = 'vs'; eqB.className = 'eqB';
+  eqA.textContent = nombreDePuesto(0) + t('y') + nombreDePuesto(2);
+  vs.textContent = ' ' + t('jgVs') + ' ';
+  eqB.textContent = nombreDePuesto(1) + t('y') + nombreDePuesto(3);
+  c.appendChild(eqA); c.appendChild(vs); c.appendChild(eqB);
+}
+$('jg-cambiar-parejas').addEventListener('click', cambiarParejas);
 /* ¿la computadora completa la mesa? Es elección del jugador, pero con
    1 o 3 personas no queda otra: sin la compu no se forman las parejas */
 var botsSel = true;
@@ -2019,12 +2265,13 @@ function repartir(){
   var conBots = botsOn();
   var humanos = [];
   for(var k0 in (JUEGO && JUEGO.asientos) || {}){
-    if(JUEGO.asientos[k0] && !JUEGO.asientos[k0].bot) humanos.push(parseInt(k0, 10));
+    if(esPersona(JUEGO.asientos[k0])) humanos.push(parseInt(k0, 10));
   }
   humanos.sort();
   var asientosFinal = {}, n;
   if(conBots){
-    /* la computadora completa la mesa hasta 4 */
+    /* la computadora completa la mesa hasta 4 (los puestos guardados
+       que nadie ocupó se sueltan) */
     humanos.forEach(function(s){ asientosFinal[s] = JUEGO.asientos[s]; });
     for(var i = 0; i < 4; i++){
       if(!asientosFinal[i]){
@@ -2319,6 +2566,12 @@ function renderJuego(){
     el.className = 'jg-seat' + (pos === 'left' ? ' lado izq' : pos === 'right' ? ' lado der' : '');
     if(si < 0){ el.classList.add('oculto'); return; }
     var a = JUEGO && JUEGO.asientos && JUEGO.asientos[si];
+    if(a && !a.uid && !a.bot){
+      /* puesto guardado para un amigo que todavía no ha llegado */
+      el.classList.add('libre');
+      el.textContent = '🪑 ' + t('jgReservado').replace('{n}', a.reservado);
+      return;
+    }
     if(!a){
       if(JUEGO && JUEGO.estado === 'jugando'){ el.classList.add('oculto'); }
       else { el.classList.add('libre'); el.textContent = '🪑 ' + t('jgLibre'); }
@@ -2330,7 +2583,12 @@ function renderJuego(){
     el.textContent = a.nombre + (a.uid === fbUID ? ' (' + t('jgTu') + ')' : '');
     if(JUEGO.estado === 'jugando'){
       if(a.uid === fbUID){
-        el.appendChild(document.createTextNode(' · ' + nf + '🁢'));
+        el.appendChild(document.createTextNode(' · ' + nf + ' '));
+        for(var fm = 0; fm < Math.min(nf, 10); fm++){
+          var miniM = document.createElement('i');
+          miniM.className = 'fb';
+          el.appendChild(miniM);
+        }
       }else if(pos === 'left' || pos === 'right'){
         /* de lado: nombre + fichitas en una sola línea girada */
         el.textContent = a.nombre.replace('🤖 ', '🤖') + ' ';
@@ -2369,6 +2627,9 @@ function renderJuego(){
   $('t-jgbots').classList.toggle('hidden', !preJuego);
   $('jg-botsrow').classList.toggle('hidden', !preJuego);
   $('jg-cancelar').classList.toggle('hidden', !preJuego);
+  $('jg-amigos').classList.toggle('hidden', !preJuego);
+  $('t-jgamigos').textContent = t('jgAmigos');
+  if(preJuego) renderParejas(); else $('jg-parejas-box').classList.add('hidden');
   if(preJuego){
     var conBots = botsOn(), forz = botsForzados();
     document.querySelectorAll('[data-jgbots]').forEach(function(b){
