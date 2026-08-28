@@ -166,9 +166,15 @@
   .jg-seat.lado{writing-mode:vertical-rl;padding:12px 6px;margin:auto 0;max-height:100%;overflow:hidden;text-overflow:ellipsis}
   .jg-seat.izq{transform:rotate(180deg)}
   .jg-seat.oculto{display:none}
-  .jg-mesa{flex:1;min-height:120px;min-width:0;background:rgba(0,0,0,.28);border:1.5px solid var(--line);border-radius:16px;padding:12px;overflow:auto;display:flex;align-items:center}
-  .jg-cadena{display:flex;align-items:center;gap:2px;margin:auto;padding:6px}
-  .jg-estado{text-align:center;font-weight:700;margin:10px 0;min-height:1.4em}
+  .jg-mesa{flex:1;min-height:120px;min-width:0;background:rgba(0,0,0,.28);border:1.5px solid var(--line);border-radius:16px;padding:8px;overflow:auto;display:flex;align-items:center}
+  .jg-cadena{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:2px;row-gap:8px;margin:auto;padding:4px}
+  /* la cadena se achica sola cuando crece, para que SIEMPRE quepa entera */
+  .jg-cadena.peq .fch.h{width:46px;height:24px} .jg-cadena.peq .fch.v{width:24px;height:46px}
+  .jg-cadena.peq .fch .pp{width:5px;height:5px}
+  .jg-cadena.mini .fch.h{width:34px;height:18px} .jg-cadena.mini .fch.v{width:18px;height:34px}
+  .jg-cadena.mini .fch .pp{width:4px;height:4px}
+  .jg-cadena.mini .fch{border-width:1.5px;border-radius:4px}
+  .jg-estado{text-align:center;font-weight:700;margin:6px 0;min-height:1.3em;font-size:.95rem}
   .jg-estado b{color:var(--gold)}
   .jg-mano-wrap{background:rgba(0,0,0,.22);border:1.5px solid var(--line);border-radius:16px;padding:10px}
   .jg-mano{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
@@ -455,6 +461,7 @@
       <button class="seg-btn sel" data-jgset="6">Doble-6</button>
       <button class="seg-btn" data-jgset="9">Doble-9</button>
     </div>
+    <button class="seg-btn sel hidden" id="jg-bots" style="margin-top:10px;width:100%">🤖 Rellenar con la computadora: SÍ</button>
   </div>
 </div>
 
@@ -746,6 +753,7 @@ var I18N = {
     ladoTitle:'¿Por cuál punta?', otraMano:'Repartir otra mano', verMarcador:'Ver el marcador',
     mesaSec:'Color de la mesa', nombreTitle:'¿Cómo te llamas?', nombrePh:'Tu nombre', nombreOk:'¡Listo!',
     jgLibre:'Puesto libre', jgTu:'tú',
+    jgBots:'🤖 Rellenar con la computadora: ', si:'SÍ', no:'NO',
     gritoSec:'El grito de ¡POLLONA!',
     gritoNone:'Sin grito grabado. ¡Graba tu POLLONAAA con el micrófono para que suene junto a las gallinas! 🎤',
     gritoHave:'🎤 Grito grabado ✓ — así sonará cada pollona.',
@@ -833,6 +841,7 @@ var I18N = {
     ladoTitle:'Which end?', otraMano:'Deal another hand', verMarcador:'See the scoreboard',
     mesaSec:'Table color', nombreTitle:'What is your name?', nombrePh:'Your name', nombreOk:'Done!',
     jgLibre:'Open seat', jgTu:'you',
+    jgBots:'🤖 Fill with the computer: ', si:'YES', no:'NO',
     gritoSec:'The ¡POLLONA! shout',
     gritoNone:'No shout recorded. Record your POLLONAAA with the mic so it plays along with the hens! 🎤',
     gritoHave:'🎤 Shout recorded ✓ — every pollona will sound like this.',
@@ -929,6 +938,7 @@ function applySettings(){
   $('jg-sentarme').textContent = t('jgSentarme');
   $('jg-repartir').textContent = t('jgRepartir');
   $('jg-pasar').textContent = t('jgPasar');
+  $('jg-bots').textContent = t('jgBots') + (botsRelleno ? t('si') : t('no'));
   $('t-ladotitle').textContent = t('ladoTitle');
   $('t-mesa').textContent = t('mesaSec');
   $('t-nombretitle').textContent = t('nombreTitle');
@@ -1778,6 +1788,7 @@ function abrirJuego(){
       JUEGO = snap.val();
       normalizaJuego();
       renderJuego();
+      maybeBot();   /* si le toca a la computadora, este teléfono la mueve */
       /* fin de mano recién llegado */
       if(JUEGO && JUEGO.estado === 'fin' && (!prev || prev.estado !== 'fin')) mostrarFinMano();
     });
@@ -1833,24 +1844,45 @@ $('nombre-ok').addEventListener('click', function(){
   reclamarAsiento(n);
 });
 $('nombre-cancel').addEventListener('click', function(){ $('ov-nombre').classList.add('hidden'); });
+var botsRelleno = true;
 function repartir(){
   if(!SALA) return;
-  var n = asientosOcupados();
-  if(n !== 2 && n !== 4){ $('jg-estado').textContent = t('jgFaltan'); return; }
+  var asientosFinal = {};
+  for(var k0 in (JUEGO && JUEGO.asientos) || {}){
+    if(JUEGO.asientos[k0]) asientosFinal[k0] = JUEGO.asientos[k0];
+  }
+  var n = 0; for(var k1 in asientosFinal) n++;
+  if(botsRelleno){
+    /* la computadora ocupa los puestos que falten hasta 4 */
+    for(var i = 0; i < 4; i++){
+      if(!asientosFinal[i]){
+        asientosFinal[i] = { uid: 'bot-' + i, nombre: '🤖 Compu ' + (i + 1), bot: true };
+      }
+    }
+    n = 4;
+  }else if(n !== 2 && n !== 4){
+    $('jg-estado').textContent = t('jgFaltan');
+    return;
+  }
   var porJug = jgSet === 9 ? 10 : 7;
   var cartas = barajar(mazo(jgSet));
   var manos = {};
   var seats = [];
-  for(var k in JUEGO.asientos) if(JUEGO.asientos[k]) seats.push(parseInt(k,10));
+  for(var k in asientosFinal) seats.push(parseInt(k, 10));
   seats.sort();
   seats.forEach(function(s, idx){
-    manos[JUEGO.asientos[s].uid] = cartas.slice(idx * porJug, (idx + 1) * porJug);
+    manos[asientosFinal[s].uid] = cartas.slice(idx * porJug, (idx + 1) * porJug);
   });
+  /* que empiece un humano si lo hay */
+  var primerHumano = seats.filter(function(s){ return !asientosFinal[s].bot; })[0];
   jgRef.set({
     set: jgSet, estado: 'jugando', nJug: n,
-    asientos: JUEGO.asientos, manos: manos,
-    mesa: [], turno: seats[0], pases: 0, dealer: fbUID
+    asientos: asientosFinal, manos: manos,
+    mesa: [], turno: primerHumano !== undefined ? primerHumano : seats[0],
+    pases: 0, dealer: fbUID
   });
+  JUEGO = JUEGO || {};
+  JUEGO.asientos = asientosFinal;
   /* el marcador toma los nombres de los jugadores/parejas de la mesa */
   var eq0 = [], eq1 = [];
   seats.forEach(function(s){
@@ -1908,11 +1940,12 @@ function pasar(){
     jgRef.update({ pases: pases, turno: sigTurno(seat) });
   }
 }
-function finalizarMano(seatFinal, tipo, updExtra){
+function finalizarMano(seatFinal, tipo, updExtra, uidJugada){
   /* pips por equipo (con las manos como quedarán tras updExtra) */
+  var uidJ = uidJugada || fbUID;
   var manos = {};
   for(var uid in JUEGO.manos) manos[uid] = JUEGO.manos[uid] || [];
-  if(updExtra && updExtra['manos/' + fbUID]) manos[fbUID] = updExtra['manos/' + fbUID];
+  if(updExtra && updExtra['manos/' + uidJ]) manos[uidJ] = updExtra['manos/' + uidJ];
   var nJug = JUEGO.nJug || asientosOcupados();
   var pipsEq = [0, 0];
   for(var k in JUEGO.asientos){
@@ -2006,6 +2039,8 @@ function renderJuego(){
   });
 
   var mesa = (JUEGO && JUEGO.mesa) || [];
+  /* la cadena se achica para que quepa completa */
+  mesaEl.className = 'jg-cadena' + (mesa.length > 18 ? ' mini' : mesa.length > 9 ? ' peq' : '');
   mesa.forEach(function(f){
     mesaEl.appendChild(fichaHTML(f.a, f.b, f.a === f.b ? 'v' : 'h'));
   });
@@ -2020,9 +2055,11 @@ function renderJuego(){
   var sentado = seat >= 0;
   $('jg-sentarme').classList.toggle('hidden', sentado);
   var puedeRepartir = sentado && (!JUEGO || JUEGO.estado !== 'jugando') &&
-                      (asientosOcupados() === 2 || asientosOcupados() === 4);
+                      (botsRelleno ? asientosOcupados() >= 1
+                                   : (asientosOcupados() === 2 || asientosOcupados() === 4));
   $('jg-repartir').classList.toggle('hidden', !puedeRepartir);
   $('jg-setrow').classList.toggle('hidden', !puedeRepartir);
+  $('jg-bots').classList.toggle('hidden', !puedeRepartir);
   var miTurno = JUEGO && JUEGO.estado === 'jugando' && JUEGO.turno === seat;
   $('jg-pasar').classList.toggle('hidden', !(JUEGO && JUEGO.estado === 'jugando' && sentado));
 
@@ -2070,6 +2107,55 @@ function renderJuego(){
   $('jg-estado').innerHTML = estadoTxt;
 }
 
+/* --- la computadora juega (la ejecuta el teléfono que repartió) --- */
+var botTimer = null;
+function maybeBot(){
+  if(!JUEGO || JUEGO.estado !== 'jugando' || JUEGO.dealer !== fbUID) return;
+  var a = JUEGO.asientos && JUEGO.asientos[JUEGO.turno];
+  if(!a || !a.bot || botTimer) return;
+  var turnoAl = JUEGO.turno;
+  botTimer = setTimeout(function(){
+    botTimer = null;
+    if(!JUEGO || JUEGO.estado !== 'jugando' || JUEGO.turno !== turnoAl) return;
+    var b = JUEGO.asientos[turnoAl];
+    if(b && b.bot) botJugada(turnoAl);
+  }, 1400);
+}
+function botJugada(seat){
+  var a = JUEGO.asientos[seat];
+  if(!a) return;
+  var uid = a.uid;
+  var mano = (JUEGO.manos[uid] || []).slice();
+  var ex = extremos();
+  var opciones = mano.filter(function(id){
+    var v = fv(id);
+    return !ex || v[0] === ex[0] || v[1] === ex[0] || v[0] === ex[1] || v[1] === ex[1];
+  });
+  if(!opciones.length){
+    var pases = (JUEGO.pases || 0) + 1;
+    if(pases >= (JUEGO.nJug || asientosOcupados())) finalizarMano(seat, 'tranca', { pases: pases });
+    else jgRef.update({ pases: pases, turno: sigTurno(seat) });
+    return;
+  }
+  var id = opciones[Math.floor(Math.random() * opciones.length)];
+  var v = fv(id), mesa = JUEGO.mesa.slice();
+  if(!ex){ mesa.push({a: v[0], b: v[1]}); }
+  else{
+    var cabeDer = v[0] === ex[1] || v[1] === ex[1];
+    if(cabeDer) mesa.push(v[0] === ex[1] ? {a: v[0], b: v[1]} : {a: v[1], b: v[0]});
+    else mesa.unshift(v[1] === ex[0] ? {a: v[0], b: v[1]} : {a: v[1], b: v[0]});
+  }
+  mano.splice(mano.indexOf(id), 1);
+  var upd = { mesa: mesa, pases: 0 };
+  upd['manos/' + uid] = mano;
+  if(!mano.length){
+    finalizarMano(seat, 'domino', upd, uid);
+  }else{
+    upd.turno = sigTurno(seat);
+    jgRef.update(upd);
+  }
+}
+
 /* --- acomodar y virar MIS fichas (preferencia local de cada teléfono) --- */
 var MANO_KEY = 'apuntes-domino-mano';
 var manoSel = null;
@@ -2109,6 +2195,12 @@ $('herr-virar').addEventListener('click', function(){
 $('herr-izq').addEventListener('click', function(){ moverFicha(-1); });
 $('herr-der').addEventListener('click', function(){ moverFicha(1); });
 $('herr-x').addEventListener('click', function(){ manoSel = null; renderJuego(); });
+$('jg-bots').addEventListener('click', function(){
+  botsRelleno = !botsRelleno;
+  this.classList.toggle('sel', botsRelleno);
+  this.textContent = t('jgBots') + (botsRelleno ? t('si') : t('no'));
+  renderJuego();
+});
 
 /* --- eventos del juego --- */
 $('sala-jugar').addEventListener('click', function(){ loadFirebase(abrirJuego); });
