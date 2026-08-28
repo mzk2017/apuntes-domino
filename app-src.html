@@ -2049,7 +2049,11 @@ function dibujaCadena(fichas){
         var tx = dx === 1 ? x : x - S;
         pos.push({x: tx, y: rowMid - L / 2, w: S, h: L, vert: true, flip: false, f: f, row: row});
         row++; dx = -dx;
-        x = dx === 1 ? tx + S : tx;
+        /* la fila nueva arranca DEBAJO de la ficha de la vuelta (no a su
+           lado), que es como se dobla una longaniza de verdad: si va
+           hacia la derecha empieza en su borde izquierdo, y si va hacia
+           la izquierda su punta queda en el borde derecho */
+        x = dx === 1 ? tx : tx + S;
         continue;
       }
       if(doble){
