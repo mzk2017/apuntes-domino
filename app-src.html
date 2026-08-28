@@ -264,6 +264,13 @@
   .ava{display:inline-flex;align-items:center;justify-content:center;flex:none;
        width:1.55em;height:1.55em;border-radius:50%;background:var(--avaC,#555);
        font-size:1em;line-height:1;box-shadow:0 0 0 2px rgba(0,0,0,.35) inset;vertical-align:middle}
+  .ava.foto{background-size:cover;background-position:center;color:transparent;font-size:0}
+  .cuenta-caja{display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.25);
+               border:1.5px solid var(--line);border-radius:14px;padding:12px;margin-top:8px}
+  .cuenta-caja .ava{font-size:1.7rem;flex:none}
+  .cuenta-caja .datos{flex:1;text-align:left;min-width:0}
+  .cuenta-caja .datos b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cuenta-caja .datos span{font-size:.78rem;color:var(--bone-dim)}
   .ava-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:4px 0 12px}
   .ava-grid button{font-size:1.5rem;padding:8px 0;border-radius:12px;border:2px solid var(--line);background:rgba(0,0,0,.25)}
   .ava-grid button.sel{border-color:var(--gold);background:rgba(232,161,60,.2)}
@@ -415,6 +422,21 @@
     <button class="ghost-link" id="btn-history-home" style="margin:0;width:100%">📜 Historial de partidas</button>
     <button class="ghost-link hidden" id="btn-install" style="margin:10px 0 0;width:100%;border-color:var(--gold);color:var(--gold)">📲 Instalar la app en este teléfono</button>
     <p class="set-note hidden" id="install-steps" style="line-height:1.5"></p>
+
+    <p class="set-section" id="t-cuenta">Mi cuenta</p>
+    <button class="ghost-link" id="btn-google" style="margin:0;width:100%;display:flex;align-items:center;gap:10px;justify-content:center;border-color:var(--gold);color:var(--gold)">
+      <span>🔑</span><span id="t-entrargoogle">Entrar con mi cuenta de Google</span>
+    </button>
+    <p class="set-note" id="t-cuentanota" style="line-height:1.45">Sin cuenta también se juega: entras como invitado igual que siempre.</p>
+    <div class="cuenta-caja hidden" id="cuenta-caja">
+      <span class="ava" id="cuenta-ava">🎲</span>
+      <span class="datos">
+        <b id="cuenta-nombre">—</b>
+        <span id="cuenta-record">—</span>
+      </span>
+      <button class="quitar" id="btn-salir-google">🚪</button>
+    </div>
+    <p class="set-note hidden" id="cuenta-error" style="color:#ff9d92;line-height:1.45"></p>
 
     <p class="set-section" id="t-miavatar">Mi dibujito</p>
     <button class="ghost-link" id="btn-avatar" style="margin:0;width:100%;display:flex;align-items:center;gap:12px;justify-content:center">
@@ -930,6 +952,13 @@ var I18N = {
     jgCuantos:'¿Cuántas personas van a jugar?',
     fmCuantos:'¿Cuántas personas juegan la próxima?',
     jgSentadas:'Sentadas: {n} de {e}', jgCompus:'la computadora pone {n} 🤖',
+    cuentaTitulo:'Mi cuenta', cuentaEntrar:'Entrar con mi cuenta de Google',
+    cuentaNota:'Sin cuenta también se juega: entras como invitado igual que siempre. Con cuenta, tu nombre, tu dibujito y tu récord te siguen aunque cambies de teléfono.',
+    cuentaRecord:'{g} ganadas · {p} perdidas · {x} pollonas',
+    cuentaSinRecord:'Todavía sin partidas terminadas',
+    cuentaErr:'No se pudo entrar',
+    cuentaErrApagado:'Falta encender "Google" en Firebase → Authentication → Sign-in method.',
+    cuentaErrDominio:'Falta autorizar esta dirección en Firebase → Authentication → Settings → Authorized domains.',
     avaMio:'Mi dibujito', avaCambiar:'Cambiar mi dibujito', avaTitulo:'Tu dibujito',
     avaNota:'Así te van a reconocer tus amigos en la mesa.',
     avaAmigo:'Dibujito de {n}',
@@ -1034,6 +1063,13 @@ var I18N = {
     jgCuantos:'How many people will play?',
     fmCuantos:'How many people play the next one?',
     jgSentadas:'Seated: {n} of {e}', jgCompus:'the computer adds {n} 🤖',
+    cuentaTitulo:'My account', cuentaEntrar:'Sign in with my Google account',
+    cuentaNota:'You can play without an account, as a guest, just like before. With an account your name, badge and record follow you even if you change phones.',
+    cuentaRecord:'{g} won · {p} lost · {x} shutouts',
+    cuentaSinRecord:'No finished games yet',
+    cuentaErr:'Could not sign in',
+    cuentaErrApagado:'Turn on "Google" in Firebase → Authentication → Sign-in method.',
+    cuentaErrDominio:'Authorize this address in Firebase → Authentication → Settings → Authorized domains.',
     avaMio:'My badge', avaCambiar:'Change my badge', avaTitulo:'Your badge',
     avaNota:'This is how your friends will spot you at the table.',
     avaAmigo:"{n}'s badge",
@@ -1159,7 +1195,11 @@ function applySettings(){
   $('t-nombretitle').textContent = t('nombreTitle');
   $('t-miavatar').textContent = t('avaMio');
   $('t-avatarcambiar').textContent = t('avaCambiar');
+  $('t-cuenta').textContent = t('cuentaTitulo');
+  $('t-entrargoogle').textContent = t('cuentaEntrar');
+  $('t-cuentanota').textContent = t('cuentaNota');
   pintaAvatarAjustes();
+  pintaCuenta();
   $('mi-nombre').placeholder = t('nombrePh');
   $('nombre-ok').textContent = t('nombreOk');
   $('t-otramano').textContent = t('otraMano');
@@ -1378,6 +1418,13 @@ function checkWinner(i){
 function celebrar(i, remoto){
   var loser = 1 - i;
   var isPollona = total(loser) === 0;
+  /* si estoy sentado a la mesa y entré con mi cuenta, la partida
+     se apunta a MI récord de la nube (gane o pierda) */
+  var miSeat = (typeof miAsiento === 'function') ? miAsiento() : -1;
+  if(PERFIL && miSeat >= 0 && JUEGO){
+    var miEq = equipoDe(miSeat, JUEGO.nJug || 2);
+    apuntarRecord(miEq === i, isPollona);
+  }
   addHistory({
     d: Date.now(),
     goal: state.goal,
@@ -1794,13 +1841,28 @@ function loadFirebase(cb){
   function initFB(){
     try{
       firebase.initializeApp(FIREBASE_CONFIG);
-      firebase.auth().signInAnonymously().then(function(cred){
-        fbUID = cred.user.uid;
-        fbDB = firebase.database();
-        fbState = 'ready';
-        fbQueue.forEach(function(f){ try{ f(); }catch(e){} });
-        fbQueue = [];
-      }).catch(function(){ fbState = 'failed'; salaMsg(t('salaErrRed')); });
+      fbDB = firebase.database();
+      var arrancado = false;
+      /* Si ya entró con Google alguna vez, Firebase se acuerda y lo
+         devuelve aquí. Solo si NO hay nadie se crea el invitado. */
+      firebase.auth().onAuthStateChanged(function(user){
+        if(!user){
+          firebase.auth().signInAnonymously().catch(function(){
+            fbState = 'failed'; salaMsg(t('salaErrRed'));
+          });
+          return;
+        }
+        fbUID = user.uid;
+        aplicarPerfil(user);
+        if(!arrancado){
+          arrancado = true;
+          fbState = 'ready';
+          fbQueue.forEach(function(f){ try{ f(); }catch(e){} });
+          fbQueue = [];
+        }else{
+          renderJuego();   /* cambió de cuenta estando dentro */
+        }
+      });
     }catch(e){ fbState = 'failed'; salaMsg(t('salaErrRed')); }
   }
   nextScript();
@@ -2205,11 +2267,13 @@ function reclamarAsiento(nombre){
   for(var i = 0; i < 4; i++) if(i !== mio) orden.push(i);
   var ava = avatarLibre(miAvatar());
   guardarAvatar(ava);
+  var yo = { uid: fbUID, nombre: nombre, e: ava.e, c: ava.c };
+  if(PERFIL && PERFIL.foto) yo.f = PERFIL.foto;
   function intenta(k){
     if(k >= orden.length) return;
     fbDB.ref('rooms/' + SALA.code + '/juego/asientos/' + orden[k]).transaction(function(cur){
-      if(cur === null) return { uid: fbUID, nombre: nombre, e: ava.e, c: ava.c };
-      if(cur && cur.reservado === nombre && !cur.uid) return { uid: fbUID, nombre: nombre, e: ava.e, c: ava.c };
+      if(cur === null) return yo;
+      if(cur && cur.reservado === nombre && !cur.uid) return yo;
       return;   /* ocupado o guardado para otro: abortar */
     }, function(err, committed){
       if(err || !committed) intenta(k + 1);
@@ -2238,6 +2302,132 @@ function humanosSentados(){
       if(esPersona(JUEGO.asientos[k])) n++;
   return n;
 }
+/* ============ cuenta con Google (opcional) ============
+   Quien no quiera cuenta sigue jugando de invitado, como siempre.
+   Quien entre con Google se queda con SU nombre, SU foto y SU récord
+   aunque cambie de teléfono o reinstale la app. */
+var PERFIL = null;   /* {uid, nombre, foto} solo si entró con Google */
+function esInvitado(){
+  try{
+    var u = firebase.auth().currentUser;
+    return !u || u.isAnonymous;
+  }catch(e){ return true; }
+}
+function aplicarPerfil(user){
+  if(!user || user.isAnonymous){ PERFIL = null; pintaCuenta(); return; }
+  PERFIL = { uid: user.uid, nombre: (user.displayName || '').trim(), foto: user.photoURL || '' };
+  /* el nombre y la foto de Google pasan a ser los suyos en el juego */
+  if(PERFIL.nombre){
+    var corto = PERFIL.nombre.split(' ')[0].slice(0, 14);
+    try{ localStorage.setItem(NOMBRE_KEY, corto); }catch(e){}
+  }
+  if(PERFIL.foto){
+    var a = cargarAvatar() || miAvatar();
+    a.f = PERFIL.foto;
+    guardarAvatar(a);
+  }
+  /* su ficha queda guardada en la nube, atada a la cuenta */
+  if(fbDB){
+    fbDB.ref('usuarios/' + user.uid + '/perfil').update({
+      nombre: PERFIL.nombre || '', foto: PERFIL.foto || ''
+    });
+    fbDB.ref('usuarios/' + user.uid + '/record').on('value', function(s){
+      pintaCuenta(s.val());
+    });
+  }
+  pintaCuenta();
+}
+function entrarConGoogle(){
+  $('cuenta-error').classList.add('hidden');
+  loadFirebase(function(){
+    var prov = new firebase.auth.GoogleAuthProvider();
+    prov.setCustomParameters({ prompt: 'select_account' });
+    var u = firebase.auth().currentUser;
+    /* si viene de invitado se ENGANCHA la cuenta: mismo usuario por
+       dentro, así no pierde nada de lo que ya tenía */
+    var paso = (u && u.isAnonymous) ? u.linkWithPopup(prov)
+                                    : firebase.auth().signInWithPopup(prov);
+    paso.then(function(r){
+      fbUID = r.user.uid;
+      aplicarPerfil(r.user);
+      renderJuego();
+    }).catch(function(err){
+      var c = err && err.code;
+      if(c === 'auth/credential-already-in-use' && err.credential){
+        /* esa cuenta de Google ya existía: entramos con ella */
+        firebase.auth().signInWithCredential(err.credential).then(function(r){
+          fbUID = r.user.uid; aplicarPerfil(r.user); renderJuego();
+        }).catch(function(e2){ errorCuenta(e2); });
+        return;
+      }
+      if(c === 'auth/popup-blocked' || c === 'auth/operation-not-supported-in-this-environment'){
+        try{ firebase.auth().signInWithRedirect(prov); return; }catch(e3){}
+      }
+      if(c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request') return;
+      errorCuenta(err);
+    });
+  });
+}
+function errorCuenta(err){
+  var c = (err && err.code) || '';
+  var msg;
+  if(c === 'auth/operation-not-allowed') msg = t('cuentaErrApagado');
+  else if(c === 'auth/unauthorized-domain') msg = t('cuentaErrDominio');
+  else msg = t('cuentaErr') + ' (' + (c || 'error') + ')';
+  var el = $('cuenta-error');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+function salirDeGoogle(){
+  try{
+    firebase.auth().signOut().then(function(){
+      PERFIL = null;
+      var a = cargarAvatar(); if(a){ delete a.f; guardarAvatar(a); }
+      pintaCuenta();
+      firebase.auth().signInAnonymously();
+    });
+  }catch(e){}
+}
+function pintaCuenta(record){
+  var dentro = !!PERFIL;
+  $('btn-google').classList.toggle('hidden', dentro);
+  $('t-cuentanota').classList.toggle('hidden', dentro);
+  $('cuenta-caja').classList.toggle('hidden', !dentro);
+  if(!dentro) return;
+  var av = $('cuenta-ava');
+  if(PERFIL.foto){
+    av.className = 'ava foto';
+    av.style.backgroundImage = 'url("' + PERFIL.foto + '")';
+  }else{
+    av.className = 'ava';
+    av.textContent = miAvatar().e;
+    av.style.setProperty('--avaC', miAvatar().c);
+  }
+  $('cuenta-nombre').textContent = PERFIL.nombre || t('jugador');
+  var r = record || pintaCuenta.ultimo || null;
+  if(record) pintaCuenta.ultimo = record;
+  $('cuenta-record').textContent = r
+    ? t('cuentaRecord').replace('{g}', r.g || 0).replace('{p}', r.p || 0)
+                       .replace('{x}', r.pollonas || 0)
+    : t('cuentaSinRecord');
+}
+/* el récord vive en la nube, pegado a la cuenta (no al teléfono) */
+var ultimoApuntado = '';
+function apuntarRecord(gane, pollona){
+  if(!PERFIL || !fbDB) return;
+  var marca = state.goal + ':' + total(0) + ':' + total(1) + ':' + (gane ? 1 : 0);
+  if(marca === ultimoApuntado) return;    /* no contar la misma partida dos veces */
+  ultimoApuntado = marca;
+  fbDB.ref('usuarios/' + PERFIL.uid + '/record').transaction(function(r){
+    r = r || { g: 0, p: 0, pollonas: 0 };
+    if(gane){ r.g = (r.g || 0) + 1; if(pollona) r.pollonas = (r.pollonas || 0) + 1; }
+    else r.p = (r.p || 0) + 1;
+    return r;
+  });
+}
+$('btn-google').addEventListener('click', entrarConGoogle);
+$('btn-salir-google').addEventListener('click', salirDeGoogle);
+
 /* ============ el dibujito de cada jugador ============
    Un emoji dentro de un color. Vive en el teléfono de cada quien y
    viaja con él a cualquier sala, para reconocerse de un vistazo. */
@@ -2291,7 +2481,11 @@ function avaHTML(a){
   var sp = document.createElement('span');
   sp.className = 'ava';
   if(a && a.bot){ sp.textContent = '🤖'; sp.style.setProperty('--avaC', '#6C7A89'); }
-  else{
+  else if(a && a.f){
+    /* entró con Google: se ve su foto de verdad */
+    sp.className = 'ava foto';
+    sp.style.backgroundImage = 'url("' + a.f + '")';
+  }else{
     sp.textContent = (a && a.e) || '🎲';
     sp.style.setProperty('--avaC', (a && a.c) || '#555');
   }
