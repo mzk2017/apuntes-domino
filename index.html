@@ -154,6 +154,37 @@
   .hist-empty{color:var(--bone-dim);text-align:center;padding:30px 10px}
   .danger-btn{margin-top:14px;color:#ff9d92;border:1.5px solid rgba(224,91,78,.5);border-radius:12px;padding:13px;font-weight:700}
 
+  /* ---------- juego de dominó en la app ---------- */
+  .jg-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+  .jg-players{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .jg-pl{padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.25);border:1.5px solid var(--line);font-size:.82rem;font-weight:700;color:var(--bone-dim)}
+  .jg-pl.rojo{border-color:var(--red)} .jg-pl.azul{border-color:var(--blue)}
+  .jg-pl.turno{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+  .jg-mesa{flex:1;min-height:120px;background:rgba(0,0,0,.28);border:1.5px solid var(--line);border-radius:16px;padding:12px;overflow:auto;display:flex;align-items:center}
+  .jg-cadena{display:flex;align-items:center;gap:2px;margin:auto;padding:6px}
+  .jg-estado{text-align:center;font-weight:700;margin:10px 0;min-height:1.4em}
+  .jg-estado b{color:var(--gold)}
+  .jg-mano-wrap{background:rgba(0,0,0,.22);border:1.5px solid var(--line);border-radius:16px;padding:10px}
+  .jg-mano{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .jg-acciones{display:flex;gap:10px;margin-top:10px}
+  .jg-acciones button{flex:1;padding:12px 0;border-radius:12px;font-family:'Lilita One',cursive;font-size:1.05rem;background:rgba(255,255,255,.1);color:var(--bone);border:1.5px solid var(--line)}
+  .jg-acciones button.principal{background:var(--gold);color:var(--ink);border:none;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+  .jg-acciones button:disabled{opacity:.35}
+  /* ficha dibujada */
+  .fch{display:inline-flex;background:#F5EFE3;border:2px solid #221D15;border-radius:6px;position:relative;flex:none}
+  .fch.h{width:64px;height:32px;flex-direction:row}
+  .fch.v{width:32px;height:64px;flex-direction:column}
+  .fch .mitad{position:relative;flex:1}
+  .fch.h .mitad:first-child{border-right:2px solid #221D15}
+  .fch.v .mitad:first-child{border-bottom:2px solid #221D15}
+  .fch .pp{position:absolute;width:6px;height:6px;border-radius:50%;background:#221D15;transform:translate(-50%,-50%)}
+  .fch.mano{width:44px;height:88px;cursor:pointer;transition:transform .1s}
+  .fch.mano .pp{width:8px;height:8px}
+  .fch.mano.jugable{outline:3px solid var(--gold);outline-offset:2px}
+  .fch.mano.jugable:active{transform:translateY(-8px)}
+  .fch.mano:not(.jugable){opacity:.55}
+  body.light .fch{box-shadow:0 2px 4px rgba(0,0,0,.25)}
+
   /* ---------- contador de fichas por foto ---------- */
   .fab-cam{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:62px;height:62px;border-radius:50%;background:var(--gold);font-size:1.7rem;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 14px rgba(0,0,0,.5);z-index:30;transition:transform .08s}
   .fab-cam:active{transform:translateX(-50%) scale(.92)}
@@ -356,6 +387,53 @@
   <button class="fab-cam" id="btn-cam" aria-label="Contar fichas con la cámara">📷</button>
 </div>
 
+<!-- ============ JUEGO DE DOMINÓ EN LA APP ============ -->
+<div class="screen hidden" id="scr-juego">
+  <div class="jg-top">
+    <button class="hist-back" id="jg-volver">‹ <span id="t-jgvolver">Marcador</span></button>
+    <div class="meta-chip" id="jg-sala-chip">👥 —</div>
+  </div>
+  <div class="jg-players" id="jg-players"></div>
+  <div class="jg-mesa"><div class="jg-cadena" id="jg-cadena"></div></div>
+  <p class="jg-estado" id="jg-estado">—</p>
+  <div class="jg-mano-wrap">
+    <div class="jg-mano" id="jg-mano"></div>
+    <div class="jg-acciones">
+      <button id="jg-sentarme" class="principal">Sentarme a jugar</button>
+      <button id="jg-repartir" class="principal hidden">Repartir</button>
+      <button id="jg-pasar" class="hidden">Paso 😔</button>
+    </div>
+    <div class="seg-row hidden" id="jg-setrow" style="margin-top:10px">
+      <button class="seg-btn sel" data-jgset="6">Doble-6</button>
+      <button class="seg-btn" data-jgset="9">Doble-9</button>
+    </div>
+  </div>
+</div>
+
+<!-- lado para jugar la ficha -->
+<div class="overlay hidden" id="ov-lado">
+  <div class="sheet">
+    <p class="sheet-title"><b id="t-ladotitle">¿Por cuál punta?</b></p>
+    <div class="seg-row">
+      <button class="seg-btn" id="lado-izq">⬅ Izquierda</button>
+      <button class="seg-btn" id="lado-der">Derecha ➡</button>
+    </div>
+    <button class="kp-cancel" id="lado-cancel">Cancelar</button>
+  </div>
+</div>
+
+<!-- fin de la mano -->
+<div class="overlay hidden" id="ov-finmano">
+  <div class="sheet" style="text-align:center">
+    <p class="sheet-title"><b id="finmano-titulo">—</b></p>
+    <p class="count-hint" id="finmano-detalle">—</p>
+    <div class="menu-list" style="margin-top:12px">
+      <button class="menu-btn" id="finmano-otra" style="text-align:center">🁢 <span id="t-otramano">Repartir otra mano</span></button>
+      <button class="menu-btn" id="finmano-marcador" style="text-align:center">📊 <span id="t-vermarcador">Ver el marcador</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ SALAS CON AMIGOS ============ -->
 <div class="overlay hidden" id="ov-salas">
   <div class="sheet">
@@ -365,6 +443,7 @@
       <p class="count-hint" id="sala-info" style="font-size:1.05rem;font-weight:700">—</p>
       <p class="count-hint" id="t-salahint">Todos los que entren ven el marcador en vivo en su teléfono.</p>
       <div class="menu-list" style="margin-top:10px">
+        <button class="menu-btn" id="sala-jugar" style="border:2px solid var(--gold)">🁢 <span id="t-salajugar">Jugar dominó aquí en la app</span></button>
         <button class="menu-btn" id="sala-invitar">📤 <span id="t-salainvitar">Invitar amigos</span></button>
         <button class="menu-btn" id="sala-salir">🚪 <span id="t-salasalir">Salir de la sala</span></button>
       </div>
@@ -591,6 +670,20 @@ var I18N = {
     salaCodigoMal:'Escribe el código de la sala (5 letras/números).',
     salaErrRed:'No se pudo conectar — revisa tu internet e intenta de nuevo.',
     salaInviteTxt:'¡Únete a mi sala de dominó "{n}"! Abre el enlace y entra directo. 🁢',
+    salaJugar:'Jugar dominó aquí en la app',
+    jgVolver:'Marcador', jgSientate:'Toca "Sentarme a jugar" para ocupar un puesto.',
+    jgEsperando:'Esperando más jugadores… (se juega con 2 o 4)',
+    jgListos:'¡Listos! Elige doble-6 o doble-9 y dale a Repartir.',
+    jgMesaVacia:'La mesa está vacía — el primero en jugar pone la primera ficha.',
+    jgTeToca:'¡TE TOCA! Toca una ficha iluminada para jugarla.',
+    jgSinJugada:'No tienes jugada 😔 — dale a "Paso".',
+    jgTurnoDe:'Le toca a <b>{n}</b>…', jgMirando:'Estás mirando la partida 👀',
+    jgFaltan:'Se juega con 2 o 4 jugadores sentados.',
+    jgTranca:'TRANCA', jgEmpate:'🤝 Empate en la tranca',
+    jgEmpateDet:'Mismos puntos por ambos lados: nadie anota esta mano.',
+    jgPuntosGanados:'Se lleva {n} puntos para el marcador.',
+    jgSentarme:'Sentarme a jugar', jgRepartir:'Repartir', jgPasar:'Paso 😔',
+    ladoTitle:'¿Por cuál punta?', otraMano:'Repartir otra mano', verMarcador:'Ver el marcador',
     gritoSec:'El grito de ¡POLLONA!',
     gritoNone:'Sin grito grabado. ¡Graba tu POLLONAAA con el micrófono para que suene junto a las gallinas! 🎤',
     gritoHave:'🎤 Grito grabado ✓ — así sonará cada pollona.',
@@ -662,6 +755,20 @@ var I18N = {
     salaCodigoMal:'Type the room code (5 letters/numbers).',
     salaErrRed:'Could not connect — check your internet and try again.',
     salaInviteTxt:'Join my domino room "{n}"! Open the link to jump right in. 🁢',
+    salaJugar:'Play dominoes here in the app',
+    jgVolver:'Scoreboard', jgSientate:'Tap "Take a seat" to join the table.',
+    jgEsperando:'Waiting for more players… (2 or 4 play)',
+    jgListos:'Ready! Pick double-6 or double-9 and tap Deal.',
+    jgMesaVacia:'The table is empty — the first player lays the first tile.',
+    jgTeToca:'YOUR TURN! Tap a highlighted tile to play it.',
+    jgSinJugada:'No possible move 😔 — tap "Pass".',
+    jgTurnoDe:'It’s <b>{n}</b>’s turn…', jgMirando:'You are watching the game 👀',
+    jgFaltan:'The game needs 2 or 4 seated players.',
+    jgTranca:'BLOCKED', jgEmpate:'🤝 Blocked game tie',
+    jgEmpateDet:'Same pips on both sides: nobody scores this hand.',
+    jgPuntosGanados:'Takes {n} points to the scoreboard.',
+    jgSentarme:'Take a seat', jgRepartir:'Deal', jgPasar:'Pass 😔',
+    ladoTitle:'Which end?', otraMano:'Deal another hand', verMarcador:'See the scoreboard',
     gritoSec:'The ¡POLLONA! shout',
     gritoNone:'No shout recorded. Record your POLLONAAA with the mic so it plays along with the hens! 🎤',
     gritoHave:'🎤 Shout recorded ✓ — every pollona will sound like this.',
@@ -751,6 +858,14 @@ function applySettings(){
   $('t-crearsala').textContent = t('salaCrearSec');
   $('t-unirsala').textContent = t('salaUnirSec');
   $('sala-crear').textContent = t('salaCrearBtn');
+  $('t-salajugar').textContent = t('salaJugar');
+  $('t-jgvolver').textContent = t('jgVolver');
+  $('jg-sentarme').textContent = t('jgSentarme');
+  $('jg-repartir').textContent = t('jgRepartir');
+  $('jg-pasar').textContent = t('jgPasar');
+  $('t-ladotitle').textContent = t('ladoTitle');
+  $('t-otramano').textContent = t('otraMano');
+  $('t-vermarcador').textContent = t('verMarcador');
   $('sala-unirse').textContent = t('salaUnirBtn');
   $('sala-nombre').placeholder = t('salaNombrePh');
   $('sala-codigo').placeholder = t('salaCodigoPh');
@@ -1456,6 +1571,7 @@ function entrarSala(code, nombre){
 }
 function salirSala(silencioso){
   if(!SALA) return;
+  try{ if(typeof jgRef !== 'undefined' && jgRef){ jgRef.off(); jgRef = null; JUEGO = null; } }catch(e){}
   try{ SALA.ref.off(); }catch(e){}
   try{ fbDB.ref('rooms/' + SALA.code + '/miembros/' + fbUID).remove(); }catch(e){}
   SALA = null;
@@ -1479,6 +1595,367 @@ function refreshSalaUI(){
   if(en && $('sala-info')) $('sala-info').textContent = '🏠 ' + SALA.nombre + ' · ' + t('salaCodigo') + ': ' + SALA.code;
   if(inl) inl.textContent = en ? ' · 👥' + SALA.code : '';
 }
+
+/* ============ JUEGO DE DOMINÓ EN LA APP (multijugador) ============ */
+var JUEGO = null;          /* copia local de rooms/{code}/juego */
+var jgRef = null;          /* referencia a la base de datos */
+var jgSet = 6;             /* doble-6 o doble-9 */
+var fichaPendiente = null; /* ficha esperando elegir lado */
+
+/* --- posiciones de los puntos (0 a 9) en porcentaje de la mitad --- */
+var PIP_POS = {
+  0: [],
+  1: [[50,50]],
+  2: [[25,25],[75,75]],
+  3: [[25,25],[50,50],[75,75]],
+  4: [[25,25],[75,25],[25,75],[75,75]],
+  5: [[25,25],[75,25],[50,50],[25,75],[75,75]],
+  6: [[25,20],[75,20],[25,50],[75,50],[25,80],[75,80]],
+  7: [[25,20],[75,20],[25,50],[50,50],[75,50],[25,80],[75,80]],
+  8: [[25,18],[50,18],[75,18],[25,50],[75,50],[25,82],[50,82],[75,82]],
+  9: [[25,18],[50,18],[75,18],[25,50],[50,50],[75,50],[25,82],[50,82],[75,82]]
+};
+function fichaHTML(a, b, clase){
+  var el = document.createElement('div');
+  el.className = 'fch ' + (clase || 'h');
+  [a, b].forEach(function(n){
+    var m = document.createElement('div');
+    m.className = 'mitad';
+    (PIP_POS[n] || []).forEach(function(p){
+      var d = document.createElement('span');
+      d.className = 'pp';
+      d.style.left = p[0] + '%';
+      d.style.top = p[1] + '%';
+      m.appendChild(d);
+    });
+    el.appendChild(m);
+  });
+  return el;
+}
+function mazo(setMax){
+  var out = [];
+  for(var a = 0; a <= setMax; a++)
+    for(var b = a; b <= setMax; b++) out.push(a + '-' + b);
+  return out;
+}
+function barajar(arr){
+  for(var i = arr.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  }
+  return arr;
+}
+function fv(id){ var p = id.split('-'); return [parseInt(p[0],10), parseInt(p[1],10)]; }
+function pipsDe(mano){
+  var s = 0;
+  (mano || []).forEach(function(id){ var v = fv(id); s += v[0] + v[1]; });
+  return s;
+}
+function miAsiento(){
+  if(!JUEGO || !JUEGO.asientos || !fbUID) return -1;
+  for(var k in JUEGO.asientos){
+    if(JUEGO.asientos[k] && JUEGO.asientos[k].uid === fbUID) return parseInt(k, 10);
+  }
+  return -1;
+}
+function asientosOcupados(){
+  var n = 0;
+  if(JUEGO && JUEGO.asientos) for(var k in JUEGO.asientos) if(JUEGO.asientos[k]) n++;
+  return n;
+}
+function equipoDe(seat, nJug){ return (nJug === 4) ? (seat % 2) : seat; }
+function sigTurno(desde){
+  var n = (JUEGO && JUEGO.nJug) || asientosOcupados();
+  for(var i = 1; i <= n; i++){
+    var s = (desde + i) % n;
+    if(JUEGO.asientos && JUEGO.asientos[s]) return s;
+  }
+  return desde;
+}
+function extremos(){
+  var mesa = (JUEGO && JUEGO.mesa) || [];
+  if(!mesa.length) return null;
+  return [mesa[0].a, mesa[mesa.length - 1].b];
+}
+function jugadasDe(mano){
+  var ex = extremos();
+  return (mano || []).filter(function(id){
+    var v = fv(id);
+    if(!ex) return true;
+    return v[0] === ex[0] || v[1] === ex[0] || v[0] === ex[1] || v[1] === ex[1];
+  });
+}
+
+/* --- entrar / salir de la pantalla del juego --- */
+function abrirJuego(){
+  if(!SALA){ return; }
+  $('ov-salas').classList.add('hidden');
+  ['scr-setup','scr-game','scr-settings','scr-history'].forEach(function(id){ $(id).classList.add('hidden'); });
+  $('scr-juego').classList.remove('hidden');
+  $('jg-sala-chip').textContent = '👥 ' + SALA.nombre + ' · ' + SALA.code;
+  if(!jgRef){
+    jgRef = fbDB.ref('rooms/' + SALA.code + '/juego');
+    jgRef.on('value', function(snap){
+      var prev = JUEGO;
+      JUEGO = snap.val();
+      normalizaJuego();
+      renderJuego();
+      /* fin de mano recién llegado */
+      if(JUEGO && JUEGO.estado === 'fin' && (!prev || prev.estado !== 'fin')) mostrarFinMano();
+    });
+  }
+}
+function cerrarJuego(){
+  $('scr-juego').classList.add('hidden');
+  render();
+}
+function normalizaJuego(){
+  if(!JUEGO) return;
+  if(!JUEGO.mesa) JUEGO.mesa = [];
+  if(!JUEGO.manos) JUEGO.manos = {};
+  if(JUEGO.asientos){
+    for(var k in JUEGO.asientos){
+      var uid = JUEGO.asientos[k] && JUEGO.asientos[k].uid;
+      if(uid && JUEGO.estado === 'jugando' && !JUEGO.manos[uid]) JUEGO.manos[uid] = [];
+    }
+  }
+}
+
+/* --- acciones --- */
+function sentarme(){
+  if(!SALA || fbState !== 'ready') return;
+  if(miAsiento() >= 0) return;
+  if(JUEGO && JUEGO.estado === 'jugando') return;   /* no sentarse a mitad de mano */
+  /* reserva atómica del asiento: si dos personas tocan a la vez,
+     solo una se queda con el puesto y la otra pasa al siguiente */
+  function intenta(i){
+    if(i >= 4) return;
+    fbDB.ref('rooms/' + SALA.code + '/juego/asientos/' + i).transaction(function(cur){
+      if(cur === null) return { uid: fbUID, nombre: 'Jugador ' + (i + 1) };
+      return;   /* ocupado: abortar */
+    }, function(err, committed){
+      if(err || !committed) intenta(i + 1);
+    });
+  }
+  intenta(0);
+}
+function repartir(){
+  if(!SALA) return;
+  var n = asientosOcupados();
+  if(n !== 2 && n !== 4){ $('jg-estado').textContent = t('jgFaltan'); return; }
+  var porJug = jgSet === 9 ? 10 : 7;
+  var cartas = barajar(mazo(jgSet));
+  var manos = {};
+  var seats = [];
+  for(var k in JUEGO.asientos) if(JUEGO.asientos[k]) seats.push(parseInt(k,10));
+  seats.sort();
+  seats.forEach(function(s, idx){
+    manos[JUEGO.asientos[s].uid] = cartas.slice(idx * porJug, (idx + 1) * porJug);
+  });
+  jgRef.set({
+    set: jgSet, estado: 'jugando', nJug: n,
+    asientos: JUEGO.asientos, manos: manos,
+    mesa: [], turno: seats[0], pases: 0, dealer: fbUID
+  });
+}
+function jugarFicha(id, lado){
+  var seat = miAsiento();
+  if(!JUEGO || JUEGO.estado !== 'jugando' || JUEGO.turno !== seat) return;
+  var mano = (JUEGO.manos[fbUID] || []).slice();
+  var idx = mano.indexOf(id);
+  if(idx < 0) return;
+  var v = fv(id), ex = extremos();
+  var mesa = JUEGO.mesa.slice();
+  if(!ex){
+    mesa.push({a: v[0], b: v[1]});
+  }else{
+    var cabeIzq = v[0] === ex[0] || v[1] === ex[0];
+    var cabeDer = v[0] === ex[1] || v[1] === ex[1];
+    if(cabeIzq && cabeDer && lado === undefined){
+      fichaPendiente = id;
+      $('ov-lado').classList.remove('hidden');
+      return;
+    }
+    var porIzq = lado === 'izq' ? true : (lado === 'der' ? false : cabeIzq);
+    if(porIzq && cabeIzq){
+      mesa.unshift(v[1] === ex[0] ? {a: v[0], b: v[1]} : {a: v[1], b: v[0]});
+    }else if(cabeDer){
+      mesa.push(v[0] === ex[1] ? {a: v[0], b: v[1]} : {a: v[1], b: v[0]});
+    }else return;
+  }
+  mano.splice(idx, 1);
+  var upd = { mesa: mesa, pases: 0 };
+  upd['manos/' + fbUID] = mano;
+  if(mano.length === 0){
+    finalizarMano(seat, 'domino', upd);
+  }else{
+    upd.turno = sigTurno(seat);
+    jgRef.update(upd);
+  }
+}
+function pasar(){
+  var seat = miAsiento();
+  if(!JUEGO || JUEGO.estado !== 'jugando' || JUEGO.turno !== seat) return;
+  if(jugadasDe(JUEGO.manos[fbUID]).length){ return; }  /* tiene jugada: no puede pasar */
+  var pases = (JUEGO.pases || 0) + 1;
+  if(pases >= (JUEGO.nJug || asientosOcupados())){
+    finalizarMano(seat, 'tranca', { pases: pases });
+  }else{
+    jgRef.update({ pases: pases, turno: sigTurno(seat) });
+  }
+}
+function finalizarMano(seatFinal, tipo, updExtra){
+  /* pips por equipo (con las manos como quedarán tras updExtra) */
+  var manos = {};
+  for(var uid in JUEGO.manos) manos[uid] = JUEGO.manos[uid] || [];
+  if(updExtra && updExtra['manos/' + fbUID]) manos[fbUID] = updExtra['manos/' + fbUID];
+  var nJug = JUEGO.nJug || asientosOcupados();
+  var pipsEq = [0, 0];
+  for(var k in JUEGO.asientos){
+    if(!JUEGO.asientos[k]) continue;
+    var s = parseInt(k, 10);
+    pipsEq[equipoDe(s, nJug)] += pipsDe(manos[JUEGO.asientos[k].uid]);
+  }
+  var ganadorEq;
+  if(tipo === 'domino'){
+    ganadorEq = equipoDe(seatFinal, nJug);
+  }else{
+    if(pipsEq[0] === pipsEq[1]) ganadorEq = -1;          /* empate en tranca */
+    else ganadorEq = pipsEq[0] < pipsEq[1] ? 0 : 1;
+  }
+  var puntos = ganadorEq >= 0 ? pipsEq[1 - ganadorEq] : 0;
+  var upd = updExtra || {};
+  upd.estado = 'fin';
+  upd.resultado = { tipo: tipo, ganadorEq: ganadorEq, puntos: puntos,
+                    pips0: pipsEq[0], pips1: pipsEq[1],
+                    nombre: ganadorEq >= 0 ? nombreEquipo(ganadorEq) : '' };
+  jgRef.update(upd);
+  /* sumar al marcador de la sala (dispara pollona si toca) */
+  if(ganadorEq >= 0 && puntos > 0){
+    if(state.phase === 'setup'){
+      state.phase = 'game';
+      if(!state.players[0].name) state.players[0].name = nombreEquipo(0);
+      if(!state.players[1].name) state.players[1].name = nombreEquipo(1);
+    }
+    state.players[ganadorEq].scores.push(puntos);
+    save();
+    checkWinner(ganadorEq);
+  }
+}
+function nombreEquipo(eq){
+  if(state.players[eq] && state.players[eq].name) return state.players[eq].name;
+  var nJug = (JUEGO && JUEGO.nJug) || 2;
+  var nombres = [];
+  if(JUEGO && JUEGO.asientos){
+    for(var k in JUEGO.asientos){
+      var s = parseInt(k, 10);
+      if(JUEGO.asientos[s] && equipoDe(s, nJug) === eq) nombres.push(JUEGO.asientos[s].nombre);
+    }
+  }
+  return nombres.join(' y ') || ('Equipo ' + (eq + 1));
+}
+function mostrarFinMano(){
+  var r = JUEGO && JUEGO.resultado;
+  if(!r) return;
+  if(r.ganadorEq < 0){
+    $('finmano-titulo').textContent = t('jgEmpate');
+    $('finmano-detalle').textContent = t('jgEmpateDet');
+  }else{
+    $('finmano-titulo').textContent = (r.tipo === 'domino' ? '🁢 ¡DOMINÓ! ' : '🔒 ' + t('jgTranca') + ' — ') + r.nombre;
+    $('finmano-detalle').textContent = tf('jgPuntosGanados', r.puntos);
+  }
+  $('ov-finmano').classList.remove('hidden');
+}
+
+/* --- render del juego --- */
+function renderJuego(){
+  if($('scr-juego').classList.contains('hidden')) return;
+  var seat = miAsiento();
+  var pls = $('jg-players'); pls.innerHTML = '';
+  var mesaEl = $('jg-cadena'); mesaEl.innerHTML = '';
+  var manoEl = $('jg-mano'); manoEl.innerHTML = '';
+  var nJug = (JUEGO && JUEGO.nJug) || asientosOcupados();
+
+  if(JUEGO && JUEGO.asientos){
+    for(var k = 0; k < 4; k++){
+      var a = JUEGO.asientos[k];
+      if(!a) continue;
+      var chip = document.createElement('span');
+      chip.className = 'jg-pl ' + (equipoDe(k, nJug || 2) === 0 ? 'rojo' : 'azul') +
+                       (JUEGO.estado === 'jugando' && JUEGO.turno === k ? ' turno' : '');
+      var nf = (JUEGO.manos && JUEGO.manos[a.uid]) ? JUEGO.manos[a.uid].length : 0;
+      chip.textContent = a.nombre + (a.uid === fbUID ? ' (tú)' : '') +
+                         (JUEGO.estado === 'jugando' ? ' · ' + nf + '🁢' : '');
+      pls.appendChild(chip);
+    }
+  }
+
+  var mesa = (JUEGO && JUEGO.mesa) || [];
+  mesa.forEach(function(f){
+    mesaEl.appendChild(fichaHTML(f.a, f.b, f.a === f.b ? 'v' : 'h'));
+  });
+  if(!mesa.length){
+    var vacio = document.createElement('span');
+    vacio.style.cssText = 'color:var(--bone-dim);font-size:.9rem';
+    vacio.textContent = t('jgMesaVacia');
+    mesaEl.appendChild(vacio);
+  }
+
+  var estadoTxt = '';
+  var sentado = seat >= 0;
+  $('jg-sentarme').classList.toggle('hidden', sentado);
+  var puedeRepartir = sentado && (!JUEGO || JUEGO.estado !== 'jugando') &&
+                      (asientosOcupados() === 2 || asientosOcupados() === 4);
+  $('jg-repartir').classList.toggle('hidden', !puedeRepartir);
+  $('jg-setrow').classList.toggle('hidden', !puedeRepartir);
+  var miTurno = JUEGO && JUEGO.estado === 'jugando' && JUEGO.turno === seat;
+  $('jg-pasar').classList.toggle('hidden', !(JUEGO && JUEGO.estado === 'jugando' && sentado));
+
+  if(!JUEGO || !JUEGO.estado || JUEGO.estado === 'fin'){
+    estadoTxt = sentado
+      ? (asientosOcupados() === 2 || asientosOcupados() === 4 ? t('jgListos') : t('jgEsperando'))
+      : t('jgSientate');
+  }else if(JUEGO.estado === 'jugando'){
+    if(sentado){
+      var manoMia = JUEGO.manos[fbUID] || [];
+      var jugables = miTurno ? jugadasDe(manoMia) : [];
+      manoMia.forEach(function(id){
+        var v = fv(id);
+        var f = fichaHTML(v[0], v[1], 'v mano');
+        if(miTurno && jugables.indexOf(id) >= 0){
+          f.classList.add('jugable');
+          (function(idd){ f.addEventListener('click', function(){ jugarFicha(idd); }); })(id);
+        }
+        manoEl.appendChild(f);
+      });
+      $('jg-pasar').disabled = !(miTurno && jugables.length === 0);
+      estadoTxt = miTurno
+        ? (jugables.length ? t('jgTeToca') : t('jgSinJugada'))
+        : tf('jgTurnoDe', (JUEGO.asientos[JUEGO.turno] || {}).nombre || '…');
+    }else{
+      estadoTxt = t('jgMirando');
+    }
+  }
+  $('jg-estado').innerHTML = estadoTxt;
+}
+
+/* --- eventos del juego --- */
+$('sala-jugar').addEventListener('click', function(){ loadFirebase(abrirJuego); });
+$('jg-volver').addEventListener('click', cerrarJuego);
+$('jg-sentarme').addEventListener('click', sentarme);
+$('jg-repartir').addEventListener('click', repartir);
+$('jg-pasar').addEventListener('click', pasar);
+document.querySelectorAll('[data-jgset]').forEach(function(b){
+  b.addEventListener('click', function(){
+    jgSet = parseInt(b.dataset.jgset, 10);
+    document.querySelectorAll('[data-jgset]').forEach(function(o){ o.classList.toggle('sel', o === b); });
+  });
+});
+$('lado-izq').addEventListener('click', function(){ $('ov-lado').classList.add('hidden'); if(fichaPendiente){ jugarFicha(fichaPendiente, 'izq'); fichaPendiente = null; } });
+$('lado-der').addEventListener('click', function(){ $('ov-lado').classList.add('hidden'); if(fichaPendiente){ jugarFicha(fichaPendiente, 'der'); fichaPendiente = null; } });
+$('lado-cancel').addEventListener('click', function(){ $('ov-lado').classList.add('hidden'); fichaPendiente = null; });
+$('finmano-otra').addEventListener('click', function(){ $('ov-finmano').classList.add('hidden'); repartir(); });
+$('finmano-marcador').addEventListener('click', function(){ $('ov-finmano').classList.add('hidden'); cerrarJuego(); });
 
 /* ============ OpenCV (carga perezosa, con respaldo) ============ */
 var cvState = 'no';   /* no | loading | ready | failed */
