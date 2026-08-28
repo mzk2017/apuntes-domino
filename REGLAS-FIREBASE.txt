@@ -1,0 +1,54 @@
+REGLAS DE SEGURIDAD DE FIREBASE — pegar antes del 26 de septiembre de 2026
+==========================================================================
+
+Las reglas de prueba se vencen el 2026-09-26. Cuando se venzan, las salas
+dejan de funcionar. Para arreglarlo de una vez:
+
+  1. Entra a  https://console.firebase.google.com
+  2. Escoge el proyecto  domino-cubano-bf4d4
+  3. Menu de la izquierda:  Realtime Database
+  4. Pestana de arriba:  Rules  (Reglas)
+  5. Borra todo lo que hay y pega EXACTAMENTE esto:
+
+{
+  "rules": {
+    "rooms": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "usuarios": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    }
+  }
+}
+
+  6. Boton  Publish  (Publicar)
+
+Que significa: a las salas entra cualquiera que abra la app (por eso el
+codigo de sala es secreto), pero la ficha y el record de cada persona
+SOLO los puede tocar su duena.
+
+
+ENCENDER LA ENTRADA CON GOOGLE
+==============================
+
+  1. En la misma consola de Firebase:  Authentication
+  2. Pestana  Sign-in method
+  3. Busca  Google  en la lista y dale
+  4. Ponlo en  Enable / Habilitar
+  5. Te pide un correo de contacto: pon  mazukilopez@gmail.com
+  6. Guardar
+
+  Y despues, para que funcione en tu direccion de internet:
+
+  7. Authentication  ->  Settings  ->  Authorized domains
+  8. Add domain  ->  escribe:  mzk2017.github.io
+  9. Guardar
+
+Si algo de esto falta, la app te lo dice sola en la pantalla de Inicio
+cuando toques "Entrar con mi cuenta de Google".
