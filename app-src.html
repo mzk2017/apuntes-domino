@@ -156,6 +156,10 @@
   .jg-seat.oculto{display:none}
   .jg-mesa{flex:1;min-height:120px;min-width:0;background:rgba(0,0,0,.28);border:1.5px solid var(--line);border-radius:16px;padding:8px;overflow:auto;display:flex;align-items:center}
   .jg-cadena{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:2px;row-gap:8px;margin:auto;padding:4px}
+  .jg-cadena.serp{display:block;position:relative;flex:none;padding:0}
+  .jg-cadena.serp .fch{position:absolute}
+  /* fichitas boca abajo de los rivales */
+  .fb{display:inline-block;width:8px;height:14px;background:linear-gradient(#EAE2CE 46%,#221D15 46%,#221D15 54%,#EAE2CE 54%);border:1.5px solid #221D15;border-radius:2px;margin:0 1px;vertical-align:middle}
   /* la cadena se achica sola cuando crece, para que SIEMPRE quepa entera */
   .jg-cadena.peq .fch.h{width:46px;height:24px} .jg-cadena.peq .fch.v{width:24px;height:46px}
   .jg-cadena.peq .fch .pp{width:5px;height:5px}
@@ -1728,6 +1732,79 @@ function fichaHTML(a, b, clase){
   });
   return el;
 }
+/* la cadena serpentea como en la mesa real: a lo largo, dobla en la
+   orilla con una ficha vertical, y regresa por la fila de abajo */
+function dibujaCadena(fichas){
+  var cont = $('jg-cadena');
+  var wrap = cont.parentElement;
+  cont.innerHTML = '';
+  if(!fichas.length){
+    cont.className = 'jg-cadena';
+    cont.style.cssText = '';
+    var vacio = document.createElement('span');
+    vacio.style.cssText = 'color:var(--bone-dim);font-size:.9rem';
+    vacio.textContent = t('jgMesaVacia');
+    cont.appendChild(vacio);
+    return;
+  }
+  var maxW = Math.max(160, wrap.clientWidth - 24);
+  var maxH = Math.max(140, wrap.clientHeight - 24);
+  var tiers = [[64, 32, ''], [46, 23, 'peq'], [34, 17, 'mini'], [26, 13, 'mini']];
+
+  function calcular(L, S){
+    var pitch = L + 4;
+    var pos = [], row = 0, dx = 1, x = 0;
+    for(var i = 0; i < fichas.length; i++){
+      var f = fichas[i];
+      var doble = f.a === f.b;
+      var wT = doble ? S : L;
+      var cabe = dx === 1 ? (x + wT <= maxW) : (x - wT >= 0);
+      if(!cabe && pos.length){
+        /* doblar: esta ficha baja en vertical por la orilla */
+        var tx = dx === 1 ? Math.min(x, maxW - S) : Math.max(x - S, 0);
+        pos.push({x: tx, y: row * pitch + L / 2, w: S, h: L, vert: true, flip: false, f: f});
+        row++; dx = -dx;
+        x = dx === 1 ? tx + S : tx;
+        continue;
+      }
+      if(doble){
+        pos.push({x: dx === 1 ? x : x - S, y: row * pitch, w: S, h: L, vert: true, flip: false, f: f});
+        x += dx * S;
+      }else{
+        pos.push({x: dx === 1 ? x : x - L, y: row * pitch + (L - S) / 2, w: L, h: S, vert: false, flip: dx === -1, f: f});
+        x += dx * L;
+      }
+    }
+    return { pos: pos, alto: (row + 1) * pitch + L / 2, filas: row + 1 };
+  }
+
+  var elegido = null, tierCls = '';
+  for(var ti = 0; ti < tiers.length; ti++){
+    var r = calcular(tiers[ti][0], tiers[ti][1]);
+    elegido = r; tierCls = tiers[ti][2];
+    if(r.alto <= maxH) break;
+  }
+  cont.className = 'jg-cadena serp ' + tierCls;
+  cont.style.width = maxW + 'px';
+  cont.style.height = elegido.alto + 'px';
+  /* una sola fila: centrada como al empezar la partida */
+  var offX = 0;
+  if(elegido.filas === 1){
+    var minX = 1e9, maxX2 = -1e9;
+    elegido.pos.forEach(function(p){ minX = Math.min(minX, p.x); maxX2 = Math.max(maxX2, p.x + p.w); });
+    offX = Math.max(0, (maxW - (maxX2 - minX)) / 2 - minX);
+  }
+  elegido.pos.forEach(function(p){
+    var a = p.f.a, b = p.f.b;
+    var el = p.vert ? fichaHTML(a, b, 'v') : fichaHTML(p.flip ? b : a, p.flip ? a : b, 'h');
+    el.style.left = (p.x + offX) + 'px';
+    el.style.top = p.y + 'px';
+    el.style.width = p.w + 'px';
+    el.style.height = p.h + 'px';
+    cont.appendChild(el);
+  });
+}
+
 function mazo(setMax){
   var out = [];
   for(var a = 0; a <= setMax; a++)
@@ -2088,22 +2165,24 @@ function renderJuego(){
     el.classList.add(equipoDe(si, nJug || 2) === 0 ? 'rojo' : 'azul');
     if(JUEGO.estado === 'jugando' && JUEGO.turno === si) el.classList.add('turno');
     var nf = (JUEGO.manos && JUEGO.manos[a.uid]) ? JUEGO.manos[a.uid].length : 0;
-    el.textContent = a.nombre + (a.uid === fbUID ? ' (' + t('jgTu') + ')' : '') +
-                     (JUEGO.estado === 'jugando' ? ' · ' + nf + '🁢' : '');
+    el.textContent = a.nombre + (a.uid === fbUID ? ' (' + t('jgTu') + ')' : '');
+    if(JUEGO.estado === 'jugando'){
+      if(a.uid === fbUID){
+        el.appendChild(document.createTextNode(' · ' + nf + '🁢'));
+      }else{
+        /* las fichitas boca abajo que le quedan */
+        el.appendChild(document.createTextNode(' '));
+        for(var fb = 0; fb < Math.min(nf, 12); fb++){
+          var mini = document.createElement('i');
+          mini.className = 'fb';
+          el.appendChild(mini);
+        }
+        el.appendChild(document.createTextNode(' ' + nf));
+      }
+    }
   });
 
-  var mesa = (JUEGO && JUEGO.mesa) || [];
-  /* la cadena se achica para que quepa completa */
-  mesaEl.className = 'jg-cadena' + (mesa.length > 18 ? ' mini' : mesa.length > 9 ? ' peq' : '');
-  mesa.forEach(function(f){
-    mesaEl.appendChild(fichaHTML(f.a, f.b, f.a === f.b ? 'v' : 'h'));
-  });
-  if(!mesa.length){
-    var vacio = document.createElement('span');
-    vacio.style.cssText = 'color:var(--bone-dim);font-size:.9rem';
-    vacio.textContent = t('jgMesaVacia');
-    mesaEl.appendChild(vacio);
-  }
+  dibujaCadena((JUEGO && JUEGO.mesa) || []);
 
   var estadoTxt = '';
   var sentado = seat >= 0;
@@ -2270,6 +2349,9 @@ document.querySelectorAll('[data-humanos]').forEach(function(b){
 /* --- eventos del juego --- */
 $('sala-jugar').addEventListener('click', function(){ loadFirebase(abrirJuego); });
 $('jg-volver').addEventListener('click', cerrarJuego);
+window.addEventListener('resize', function(){
+  if(!$('scr-juego').classList.contains('hidden')) renderJuego();
+});
 $('jg-full').addEventListener('click', function(){
   try{
     if(document.fullscreenElement){ document.exitFullscreen(); }
