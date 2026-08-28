@@ -273,6 +273,17 @@
   body.mesa-morado:not(.light){--felt:#2E1A4A;--felt-soft:#3C2360;--felt-deep:#1E1032}
   body.mesa-madera:not(.light){--felt:#4A3116;--felt-soft:#5E401E;--felt-deep:#33210E}
   .mesa-chips{display:flex;gap:12px;justify-content:flex-start}
+  /* el dibujito de cada jugador: un emoji dentro de su color */
+  .ava{display:inline-flex;align-items:center;justify-content:center;flex:none;
+       width:1.55em;height:1.55em;border-radius:50%;background:var(--avaC,#555);
+       font-size:1em;line-height:1;box-shadow:0 0 0 2px rgba(0,0,0,.35) inset;vertical-align:middle}
+  .ava-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:4px 0 12px}
+  .ava-grid button{font-size:1.5rem;padding:8px 0;border-radius:12px;border:2px solid var(--line);background:rgba(0,0,0,.25)}
+  .ava-grid button.sel{border-color:var(--gold);background:rgba(232,161,60,.2)}
+  .ava-colores{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:6px}
+  .ava-colores button{width:38px;height:38px;border-radius:50%;border:3px solid var(--line)}
+  .ava-colores button.sel{border-color:#fff;transform:scale(1.1)}
+  .ava-previa{text-align:center;font-size:1.3rem;font-weight:700;margin:6px 0 12px;display:flex;align-items:center;justify-content:center;gap:10px}
   .mesa-chip{width:44px;height:44px;border-radius:50%;border:3px solid var(--line);transition:transform .1s}
   .mesa-chip.sel{border-color:var(--gold);transform:scale(1.15)}
   .mesa-chip[data-mesa="verde"]{background:#17402E}
@@ -417,6 +428,12 @@
     <button class="ghost-link" id="btn-history-home" style="margin:0;width:100%">📜 Historial de partidas</button>
     <button class="ghost-link hidden" id="btn-install" style="margin:10px 0 0;width:100%;border-color:var(--gold);color:var(--gold)">📲 Instalar la app en este teléfono</button>
     <p class="set-note hidden" id="install-steps" style="line-height:1.5"></p>
+
+    <p class="set-section" id="t-miavatar">Mi dibujito</p>
+    <button class="ghost-link" id="btn-avatar" style="margin:0;width:100%;display:flex;align-items:center;gap:12px;justify-content:center">
+      <span class="ava" id="ava-mia">🎲</span>
+      <span id="t-avatarcambiar">Cambiar mi dibujito</span>
+    </button>
 
     <p class="set-section" id="t-lang">Idioma</p>
     <div class="seg-row">
@@ -578,6 +595,19 @@
       <button class="menu-btn" id="jg-cambiar-parejas" style="margin-top:8px">🔄 <span id="t-jgcambiarparejas">Cambiar parejas</span></button>
     </div>
     <button class="menu-btn hidden" id="jg-amigos" style="margin-top:12px">⭐ <span id="t-jgamigos">Mis amigos</span></button>
+  </div>
+</div>
+
+<!-- escoger mi dibujito (emoji + color) -->
+<div class="overlay hidden" id="ov-avatar">
+  <div class="sheet">
+    <p class="sheet-title"><b id="t-avatartitle">Tu dibujito</b></p>
+    <p class="set-note" id="t-avatarnota" style="margin:0 0 8px">Así te van a reconocer tus amigos en la mesa.</p>
+    <div class="ava-previa"><span class="ava" id="ava-previa">🎲</span><span id="ava-previa-nombre">—</span></div>
+    <div class="ava-grid" id="ava-grid"></div>
+    <div class="ava-colores" id="ava-colores"></div>
+    <button class="big-btn" id="avatar-ok" style="margin:10px 0 0;padding:14px 0;font-size:1.15rem">¡Listo!</button>
+    <button class="kp-cancel" id="avatar-cancel">Cancelar</button>
   </div>
 </div>
 
@@ -913,6 +943,9 @@ var I18N = {
     jgCuantos:'¿Cuántas personas van a jugar?',
     fmCuantos:'¿Cuántas personas juegan la próxima?',
     jgSentadas:'Sentadas: {n} de {e}', jgCompus:'la computadora pone {n} 🤖',
+    avaMio:'Mi dibujito', avaCambiar:'Cambiar mi dibujito', avaTitulo:'Tu dibujito',
+    avaNota:'Así te van a reconocer tus amigos en la mesa.',
+    avaAmigo:'Dibujito de {n}',
     jgParejas:'Parejas', jgCambiarParejas:'Cambiar parejas', jgVs:'contra',
     jgAmigos:'Mis amigos', jgAmigosTitulo:'⭐ Mis amigos',
     jgAmigosNota:'Toca un amigo para guardarle su puesto en la mesa.',
@@ -1014,6 +1047,9 @@ var I18N = {
     jgCuantos:'How many people will play?',
     fmCuantos:'How many people play the next one?',
     jgSentadas:'Seated: {n} of {e}', jgCompus:'the computer adds {n} 🤖',
+    avaMio:'My badge', avaCambiar:'Change my badge', avaTitulo:'Your badge',
+    avaNota:'This is how your friends will spot you at the table.',
+    avaAmigo:"{n}'s badge",
     jgParejas:'Teams', jgCambiarParejas:'Change teams', jgVs:'vs',
     jgAmigos:'My friends', jgAmigosTitulo:'⭐ My friends',
     jgAmigosNota:'Tap a friend to save their seat at the table.',
@@ -1134,6 +1170,9 @@ function applySettings(){
   $('t-ladotitle').textContent = t('ladoTitle');
   $('t-mesa').textContent = t('mesaSec');
   $('t-nombretitle').textContent = t('nombreTitle');
+  $('t-miavatar').textContent = t('avaMio');
+  $('t-avatarcambiar').textContent = t('avaCambiar');
+  pintaAvatarAjustes();
   $('mi-nombre').placeholder = t('nombrePh');
   $('nombre-ok').textContent = t('nombreOk');
   $('t-otramano').textContent = t('otraMano');
@@ -2151,12 +2190,16 @@ function sentarme(){
   var res = reservados(), nombres = Object.keys(res);
   $('t-nombretitle').textContent = nombres.length ? t('jgQuienEres') : t('nombreTitle');
   nombres.forEach(function(n){
+    var puesto = JUEGO && JUEGO.asientos && JUEGO.asientos[res[n]];
     var b = document.createElement('button');
     b.className = 'menu-btn';
-    b.style.cssText = 'margin-bottom:8px;border:2px solid var(--gold)';
-    b.textContent = '🪑 ' + t('jgSoyYo').replace('{n}', n);
+    b.style.cssText = 'margin-bottom:8px;border:2px solid var(--gold);display:flex;align-items:center;gap:10px;justify-content:center';
+    b.appendChild(avaHTML(puesto));
+    b.appendChild(document.createTextNode(t('jgSoyYo').replace('{n}', n)));
     b.addEventListener('click', function(){
       $('ov-nombre').classList.add('hidden');
+      /* al tomar el puesto guardado, me quedo con ese dibujito */
+      if(puesto && puesto.e) guardarAvatar({ e: puesto.e, c: puesto.c });
       reclamarAsiento(n);
     });
     cont.appendChild(b);
@@ -2173,11 +2216,13 @@ function reclamarAsiento(nombre){
   var orden = [];
   if(mio !== undefined) orden.push(mio);
   for(var i = 0; i < 4; i++) if(i !== mio) orden.push(i);
+  var ava = avatarLibre(miAvatar());
+  guardarAvatar(ava);
   function intenta(k){
     if(k >= orden.length) return;
     fbDB.ref('rooms/' + SALA.code + '/juego/asientos/' + orden[k]).transaction(function(cur){
-      if(cur === null) return { uid: fbUID, nombre: nombre };
-      if(cur && cur.reservado === nombre && !cur.uid) return { uid: fbUID, nombre: nombre };
+      if(cur === null) return { uid: fbUID, nombre: nombre, e: ava.e, c: ava.c };
+      if(cur && cur.reservado === nombre && !cur.uid) return { uid: fbUID, nombre: nombre, e: ava.e, c: ava.c };
       return;   /* ocupado o guardado para otro: abortar */
     }, function(err, committed){
       if(err || !committed) intenta(k + 1);
@@ -2206,13 +2251,136 @@ function humanosSentados(){
       if(esPersona(JUEGO.asientos[k])) n++;
   return n;
 }
+/* ============ el dibujito de cada jugador ============
+   Un emoji dentro de un color. Vive en el teléfono de cada quien y
+   viaja con él a cualquier sala, para reconocerse de un vistazo. */
+var AVA_EMOJIS = ['🐔','🦁','🐯','🐶','🐱','🐻','🐼','🦊','🐷','🐮','🐸','🐵',
+                  '🦅','🦈','🐢','🐙','⚽','🎩','👑','🌵','🍀','⭐','🔥','💎'];
+var AVA_COLORES = ['#E05B4E','#4E9BE0','#E8A13C','#48B27A','#9B72D0',
+                   '#E06BA8','#45C4C4','#E8763C'];
+var AVATAR_KEY = 'apuntes-domino-avatar';
+function cargarAvatar(){
+  try{
+    var a = JSON.parse(localStorage.getItem(AVATAR_KEY));
+    if(a && a.e && a.c) return a;
+  }catch(e){}
+  return null;
+}
+function miAvatar(){
+  var a = cargarAvatar();
+  if(a) return a;
+  /* si nunca escogió, se le da uno al azar y se guarda */
+  a = { e: AVA_EMOJIS[Math.floor(Math.random() * AVA_EMOJIS.length)],
+        c: AVA_COLORES[Math.floor(Math.random() * AVA_COLORES.length)] };
+  guardarAvatar(a);
+  return a;
+}
+function guardarAvatar(a){
+  try{ localStorage.setItem(AVATAR_KEY, JSON.stringify(a)); }catch(e){}
+}
+/* dos jugadores con el mismo dibujito confunden: si el mío ya está
+   puesto en la mesa, me corro al siguiente emoji libre */
+function avatarLibre(a){
+  var usados = {};
+  if(JUEGO && JUEGO.asientos)
+    for(var k in JUEGO.asientos){
+      var s = JUEGO.asientos[k];
+      if(s && s.uid && s.uid !== fbUID && s.e) usados[s.e] = true;
+    }
+  if(!usados[a.e]) return a;
+  for(var i = 0; i < AVA_EMOJIS.length; i++){
+    if(!usados[AVA_EMOJIS[i]]) return { e: AVA_EMOJIS[i], c: a.c };
+  }
+  return a;
+}
+/* el nombre limpio, con su dibujito delante */
+function nombreConDibujito(a){
+  if(!a) return '…';
+  if(a.bot) return '🤖 ' + a.nombre.replace('🤖 ', '');
+  return (a.e ? a.e + ' ' : '') + a.nombre;
+}
+/* pinta el dibujito de un jugador (o del 🤖 de la computadora) */
+function avaHTML(a){
+  var sp = document.createElement('span');
+  sp.className = 'ava';
+  if(a && a.bot){ sp.textContent = '🤖'; sp.style.setProperty('--avaC', '#6C7A89'); }
+  else{
+    sp.textContent = (a && a.e) || '🎲';
+    sp.style.setProperty('--avaC', (a && a.c) || '#555');
+  }
+  return sp;
+}
+var avaTmp = null;
+function abrirAvatar(){
+  avaTmp = JSON.parse(JSON.stringify(miAvatar()));
+  var g = $('ava-grid'); g.innerHTML = '';
+  AVA_EMOJIS.forEach(function(e){
+    var b = document.createElement('button');
+    b.textContent = e;
+    b.className = e === avaTmp.e ? 'sel' : '';
+    b.addEventListener('click', function(){ avaTmp.e = e; pintaAvatarPrevia(); });
+    g.appendChild(b);
+  });
+  var c = $('ava-colores'); c.innerHTML = '';
+  AVA_COLORES.forEach(function(col){
+    var b = document.createElement('button');
+    b.style.background = col;
+    b.className = col === avaTmp.c ? 'sel' : '';
+    b.addEventListener('click', function(){ avaTmp.c = col; pintaAvatarPrevia(); });
+    c.appendChild(b);
+  });
+  $('t-avatartitle').textContent = t('avaTitulo');
+  $('t-avatarnota').textContent = t('avaNota');
+  var nom = '';
+  try{ nom = localStorage.getItem(NOMBRE_KEY) || ''; }catch(e){}
+  $('ava-previa-nombre').textContent = nom || t('jugador');
+  pintaAvatarPrevia();
+  $('ov-avatar').classList.remove('hidden');
+}
+function pintaAvatarPrevia(){
+  var p = $('ava-previa');
+  p.textContent = avaTmp.e;
+  p.style.setProperty('--avaC', avaTmp.c);
+  [].forEach.call($('ava-grid').children, function(b){ b.classList.toggle('sel', b.textContent === avaTmp.e); });
+  [].forEach.call($('ava-colores').children, function(b){ b.classList.toggle('sel', b.style.background === avaTmp.c || rgb2hex(b.style.background) === avaTmp.c); });
+}
+function rgb2hex(s){
+  var m = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(s || '');
+  if(!m) return s;
+  return '#' + [1,2,3].map(function(i){ return ('0' + (+m[i]).toString(16)).slice(-2); }).join('').toUpperCase();
+}
+$('btn-avatar').addEventListener('click', abrirAvatar);
+$('avatar-cancel').addEventListener('click', function(){ $('ov-avatar').classList.add('hidden'); });
+$('avatar-ok').addEventListener('click', function(){
+  guardarAvatar(avaTmp);
+  $('ov-avatar').classList.add('hidden');
+  pintaAvatarAjustes();
+  /* si ya estoy sentado, mi puesto en la mesa cambia al instante */
+  var s = miAsiento();
+  if(s >= 0 && jgRef && JUEGO && JUEGO.estado !== 'jugando'){
+    jgRef.child('asientos/' + s).update({ e: avaTmp.e, c: avaTmp.c });
+  }else if(s >= 0 && jgRef){
+    jgRef.child('asientos/' + s).update({ e: avaTmp.e, c: avaTmp.c });
+  }
+  renderJuego();
+});
+function pintaAvatarAjustes(){
+  var a = miAvatar(), el = $('ava-mia');
+  el.textContent = a.e;
+  el.style.setProperty('--avaC', a.c);
+}
+
 /* ---- amigos favoritos: se les guarda el puesto en la mesa ---- */
 var AMIGOS_KEY = 'apuntes-domino-amigos';
 function cargarAmigos(){
-  try{
-    var a = JSON.parse(localStorage.getItem(AMIGOS_KEY));
-    return Array.isArray(a) ? a : [];
-  }catch(e){ return []; }
+  var a = [];
+  try{ a = JSON.parse(localStorage.getItem(AMIGOS_KEY)) || []; }catch(e){ a = []; }
+  if(!Array.isArray(a)) a = [];
+  /* antes se guardaban solo los nombres: se les pone dibujito */
+  return a.map(function(x, i){
+    if(typeof x === 'string') return { n: x, e: AVA_EMOJIS[i % AVA_EMOJIS.length], c: AVA_COLORES[i % AVA_COLORES.length] };
+    return { n: x.n, e: x.e || AVA_EMOJIS[i % AVA_EMOJIS.length], c: x.c || AVA_COLORES[i % AVA_COLORES.length] };
+  });
 }
 function guardarAmigos(a){
   try{ localStorage.setItem(AMIGOS_KEY, JSON.stringify(a.slice(0, 20))); }catch(e){}
@@ -2226,16 +2394,16 @@ function reservados(){
     }
   return out;
 }
-function reservarAmigo(nombre){
+function reservarAmigo(amigo){
   if(!jgRef || (JUEGO && JUEGO.estado === 'jugando')) return;
   var res = reservados();
-  if(res[nombre] !== undefined){          /* ya tenía puesto: se lo quito */
-    jgRef.child('asientos/' + res[nombre]).set(null);
+  if(res[amigo.n] !== undefined){          /* ya tenía puesto: se lo quito */
+    jgRef.child('asientos/' + res[amigo.n]).set(null);
     return;
   }
   for(var i = 0; i < 4; i++){             /* primer puesto libre */
     if(!(JUEGO && JUEGO.asientos && JUEGO.asientos[i])){
-      jgRef.child('asientos/' + i).set({ reservado: nombre });
+      jgRef.child('asientos/' + i).set({ reservado: amigo.n, e: amigo.e, c: amigo.c });
       return;
     }
   }
@@ -2252,24 +2420,39 @@ function renderAmigos(){
     cont.appendChild(v);
     return;
   }
-  amigos.forEach(function(nombre){
+  amigos.forEach(function(amigo, idx){
     var fila = document.createElement('div');
-    fila.className = 'amigo-fila' + (res[nombre] !== undefined ? ' puesto' : '');
+    fila.className = 'amigo-fila' + (res[amigo.n] !== undefined ? ' puesto' : '');
+    /* su dibujito: tocándolo se le cambia el emoji */
+    var ava = avaHTML(amigo);
+    ava.style.cursor = 'pointer';
+    ava.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var lista = cargarAmigos();
+      var i = AVA_EMOJIS.indexOf(lista[idx].e);
+      lista[idx].e = AVA_EMOJIS[(i + 1) % AVA_EMOJIS.length];
+      lista[idx].c = AVA_COLORES[(AVA_COLORES.indexOf(lista[idx].c) + 1) % AVA_COLORES.length];
+      guardarAmigos(lista);
+      if(res[amigo.n] !== undefined){       /* si tenía puesto, se actualiza */
+        jgRef.child('asientos/' + res[amigo.n]).update({ e: lista[idx].e, c: lista[idx].c });
+      }
+      renderAmigos();
+    });
     var mark = document.createElement('span');
     mark.className = 'mark';
-    mark.textContent = res[nombre] !== undefined ? '🪑' : '☆';
+    mark.textContent = res[amigo.n] !== undefined ? '🪑' : '☆';
     var nom = document.createElement('button');
     nom.className = 'nom';
-    nom.textContent = nombre;
-    nom.addEventListener('click', function(){ reservarAmigo(nombre); setTimeout(renderAmigos, 250); });
+    nom.textContent = amigo.n;
+    nom.addEventListener('click', function(){ reservarAmigo(amigo); setTimeout(renderAmigos, 250); });
     var quitar = document.createElement('button');
     quitar.className = 'quitar'; quitar.textContent = '🗑';
     quitar.addEventListener('click', function(){
-      if(res[nombre] !== undefined) reservarAmigo(nombre);   /* le suelto el puesto */
-      guardarAmigos(cargarAmigos().filter(function(x){ return x !== nombre; }));
+      if(res[amigo.n] !== undefined) reservarAmigo(amigo);   /* le suelto el puesto */
+      guardarAmigos(cargarAmigos().filter(function(x){ return x.n !== amigo.n; }));
       setTimeout(renderAmigos, 250);
     });
-    fila.appendChild(mark); fila.appendChild(nom); fila.appendChild(quitar);
+    fila.appendChild(ava); fila.appendChild(nom); fila.appendChild(mark); fila.appendChild(quitar);
     cont.appendChild(fila);
   });
 }
@@ -2285,7 +2468,15 @@ $('amigo-add').addEventListener('click', function(){
   var n = ($('amigo-nuevo').value || '').trim();
   if(!n) return;
   var a = cargarAmigos();
-  if(a.indexOf(n) < 0){ a.push(n); guardarAmigos(a); }
+  var yaEsta = a.some(function(x){ return x.n === n; });
+  if(!yaEsta){
+    /* se le da un dibujito que no tenga ya otro amigo */
+    var usados = {}; a.forEach(function(x){ usados[x.e] = true; });
+    var libre = AVA_EMOJIS.filter(function(e){ return !usados[e]; });
+    a.push({ n: n, e: (libre[0] || AVA_EMOJIS[a.length % AVA_EMOJIS.length]),
+             c: AVA_COLORES[a.length % AVA_COLORES.length] });
+    guardarAmigos(a);
+  }
   $('amigo-nuevo').value = '';
   renderAmigos();
 });
@@ -2308,8 +2499,8 @@ function cambiarParejas(){
 }
 function nombreDePuesto(s){
   var a = JUEGO && JUEGO.asientos && JUEGO.asientos[s];
-  if(a && a.uid) return a.nombre + (a.uid === fbUID ? ' (' + t('jgTu') + ')' : '');
-  if(a && a.reservado) return a.reservado;
+  if(a && a.uid) return (a.e ? a.e + ' ' : '') + a.nombre + (a.uid === fbUID ? ' (' + t('jgTu') + ')' : '');
+  if(a && a.reservado) return (a.e ? a.e + ' ' : '') + a.reservado;
   return botsOn() ? t('compu') + ' ' + (s + 1) : '—';
 }
 function renderParejas(){
@@ -2692,7 +2883,9 @@ function renderJuego(){
     if(a && !a.uid && !a.bot){
       /* puesto guardado para un amigo que todavía no ha llegado */
       el.classList.add('libre');
-      el.textContent = '🪑 ' + t('jgReservado').replace('{n}', a.reservado);
+      el.textContent = '';
+      el.appendChild(avaHTML(a));
+      el.appendChild(document.createTextNode(' ' + t('jgReservado').replace('{n}', a.reservado)));
       return;
     }
     if(!a){
@@ -2703,7 +2896,10 @@ function renderJuego(){
     el.classList.add(equipoDe(si, nJug || 2) === 0 ? 'rojo' : 'azul');
     if(JUEGO.estado === 'jugando' && JUEGO.turno === si) el.classList.add('turno');
     var nf = (JUEGO.manos && JUEGO.manos[a.uid]) ? JUEGO.manos[a.uid].length : 0;
-    el.textContent = a.nombre + (a.uid === fbUID ? ' (' + t('jgTu') + ')' : '');
+    el.textContent = '';
+    el.appendChild(avaHTML(a));
+    el.appendChild(document.createTextNode(' ' + a.nombre.replace('🤖 ', '') +
+      (a.uid === fbUID ? ' (' + t('jgTu') + ')' : '')));
     if(JUEGO.estado === 'jugando'){
       if(a.uid === fbUID){
         el.appendChild(document.createTextNode(' · ' + nf + ' '));
@@ -2713,8 +2909,9 @@ function renderJuego(){
           el.appendChild(miniM);
         }
       }else if(pos === 'left' || pos === 'right'){
-        /* de lado: nombre + fichitas en una sola línea girada */
-        el.textContent = a.nombre.replace('🤖 ', '🤖') + ' ';
+        /* de lado: el chip va girado, así que el dibujito va como emoji
+           suelto (un círculo de color se vería acostado) */
+        el.textContent = (a.bot ? '🤖' : (a.e || '🎲')) + a.nombre.replace('🤖 ', '') + ' ';
         for(var fl = 0; fl < Math.min(nf, 8); fl++){
           var miniL = document.createElement('i');
           miniL.className = 'fb';
@@ -2807,7 +3004,7 @@ function renderJuego(){
       $('jg-pasar').disabled = !(miTurno && jugables.length === 0);
       estadoTxt = miTurno
         ? (jugables.length ? t('jgTeToca') : t('jgSinJugada'))
-        : tf('jgTurnoDe', (JUEGO.asientos[JUEGO.turno] || {}).nombre || '…');
+        : tf('jgTurnoDe', nombreConDibujito(JUEGO.asientos[JUEGO.turno]));
     }else{
       estadoTxt = t('jgMirando');
     }
