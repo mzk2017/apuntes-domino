@@ -255,6 +255,7 @@
   <div style="flex:1;overflow-y:auto;min-height:0">
     <button class="big-btn" id="home-play" style="margin:4px 0 10px">🁢 Jugar</button>
     <button class="ghost-link hidden" id="home-new" style="margin:0 0 10px;width:100%">✨ Partida nueva</button>
+    <button class="ghost-link" id="btn-salas" style="margin:0 0 10px;width:100%;border-color:var(--blue);color:var(--blue)">👥 Salas con amigos</button>
     <button class="ghost-link" id="btn-history-home" style="margin:0;width:100%">📜 Historial de partidas</button>
     <button class="ghost-link hidden" id="btn-install" style="margin:10px 0 0;width:100%;border-color:var(--gold);color:var(--gold)">📲 Instalar la app en este teléfono</button>
     <p class="set-note hidden" id="install-steps" style="line-height:1.5"></p>
@@ -330,7 +331,7 @@
 <!-- ============ GAME ============ -->
 <div class="screen hidden" id="scr-game">
   <div class="topbar">
-    <div class="meta-chip"><span id="t-goal">Meta</span>: <b id="goal-show">150</b></div>
+    <div class="meta-chip"><span id="t-goal">Meta</span>: <b id="goal-show">150</b><span id="sala-inline"></span></div>
     <div style="display:flex;gap:8px">
       <button class="icon-btn" id="btn-home" aria-label="Inicio y ajustes">🏠</button>
       <button class="icon-btn" id="btn-menu">⟲</button>
@@ -353,6 +354,35 @@
     </section>
   </div>
   <button class="fab-cam" id="btn-cam" aria-label="Contar fichas con la cámara">📷</button>
+</div>
+
+<!-- ============ SALAS CON AMIGOS ============ -->
+<div class="overlay hidden" id="ov-salas">
+  <div class="sheet">
+    <p class="sheet-title"><b id="t-salastitle">👥 Salas con amigos</b></p>
+
+    <div id="sala-actual" class="hidden">
+      <p class="count-hint" id="sala-info" style="font-size:1.05rem;font-weight:700">—</p>
+      <p class="count-hint" id="t-salahint">Todos los que entren ven el marcador en vivo en su teléfono.</p>
+      <div class="menu-list" style="margin-top:10px">
+        <button class="menu-btn" id="sala-invitar">📤 <span id="t-salainvitar">Invitar amigos</span></button>
+        <button class="menu-btn" id="sala-salir">🚪 <span id="t-salasalir">Salir de la sala</span></button>
+      </div>
+    </div>
+
+    <div id="sala-nueva">
+      <p class="set-section" id="t-crearsala">Crear una sala</p>
+      <input class="name-input" id="sala-nombre" maxlength="20" placeholder="Nombre de la sala (ej: Los del barrio)" autocomplete="off">
+      <button class="big-btn" id="sala-crear" style="margin:10px 0 0;padding:14px 0;font-size:1.2rem">Crear sala</button>
+
+      <p class="set-section" id="t-unirsala" style="margin-top:18px">Unirse a una sala</p>
+      <input class="name-input" id="sala-codigo" maxlength="5" placeholder="Código (ej: K7PM4)" autocomplete="off" style="text-transform:uppercase;letter-spacing:.2em;text-align:center">
+      <button class="big-btn" id="sala-unirse" style="margin:10px 0 0;padding:14px 0;font-size:1.2rem;background:var(--blue)">Unirse</button>
+    </div>
+
+    <p class="count-hint" id="sala-msg" style="margin-top:12px"></p>
+    <button class="kp-cancel" id="salas-cancel">Cerrar</button>
+  </div>
 </div>
 
 <!-- ============ MENÚ ============ -->
@@ -551,6 +581,16 @@ var I18N = {
     countFail:'No pude distinguir las fichas 😅 — pon el número a mano, o intenta otra foto con las fichas una al lado de la otra sobre un fondo oscuro.',
     whoFor:'¿Para quién son estos puntos?',
     settings:'Ajustes', langSec:'Idioma', themeSec:'Tema', dark:'🌙 Oscuro', light:'☀️ Claro',
+    salasBtn:'👥 Salas con amigos', salasTitle:'👥 Salas con amigos',
+    salaHint:'Todos los que entren ven el marcador en vivo en su teléfono.',
+    salaCrearSec:'Crear una sala', salaCrearBtn:'Crear sala',
+    salaUnirSec:'Unirse a una sala', salaUnirBtn:'Unirse',
+    salaNombrePh:'Nombre de la sala (ej: Los del barrio)', salaCodigoPh:'Código (ej: K7PM4)',
+    salaInvitar:'Invitar amigos', salaSalir:'Salir de la sala', salaCodigo:'Código',
+    salaConectando:'Conectando…', salaNoExiste:'Esa sala no existe — revisa el código.',
+    salaCodigoMal:'Escribe el código de la sala (5 letras/números).',
+    salaErrRed:'No se pudo conectar — revisa tu internet e intenta de nuevo.',
+    salaInviteTxt:'¡Únete a mi sala de dominó "{n}"! Abre el enlace y entra directo. 🁢',
     gritoSec:'El grito de ¡POLLONA!',
     gritoNone:'Sin grito grabado. ¡Graba tu POLLONAAA con el micrófono para que suene junto a las gallinas! 🎤',
     gritoHave:'🎤 Grito grabado ✓ — así sonará cada pollona.',
@@ -612,6 +652,16 @@ var I18N = {
     countFail:'I could not make out the tiles 😅 — set the number by hand, or try another photo with the tiles side by side on a dark background.',
     whoFor:'Who are these points for?',
     settings:'Settings', langSec:'Language', themeSec:'Theme', dark:'🌙 Dark', light:'☀️ Light',
+    salasBtn:'👥 Rooms with friends', salasTitle:'👥 Rooms with friends',
+    salaHint:'Everyone who joins sees the live scoreboard on their own phone.',
+    salaCrearSec:'Create a room', salaCrearBtn:'Create room',
+    salaUnirSec:'Join a room', salaUnirBtn:'Join',
+    salaNombrePh:'Room name (e.g. The Crew)', salaCodigoPh:'Code (e.g. K7PM4)',
+    salaInvitar:'Invite friends', salaSalir:'Leave room', salaCodigo:'Code',
+    salaConectando:'Connecting…', salaNoExiste:'That room does not exist — check the code.',
+    salaCodigoMal:'Type the room code (5 letters/numbers).',
+    salaErrRed:'Could not connect — check your internet and try again.',
+    salaInviteTxt:'Join my domino room "{n}"! Open the link to jump right in. 🁢',
     gritoSec:'The ¡POLLONA! shout',
     gritoNone:'No shout recorded. Record your POLLONAAA with the mic so it plays along with the hens! 🎤',
     gritoHave:'🎤 Shout recorded ✓ — every pollona will sound like this.',
@@ -693,6 +743,18 @@ function applySettings(){
   $('home-new').textContent = t('newGame');
   $('home-new').classList.toggle('hidden', state.phase !== 'game');
   $('btn-history-home').textContent = t('historyBtn');
+  $('btn-salas').textContent = t('salasBtn');
+  $('t-salastitle').textContent = t('salasTitle');
+  $('t-salahint').textContent = t('salaHint');
+  $('t-salainvitar').textContent = t('salaInvitar');
+  $('t-salasalir').textContent = t('salaSalir');
+  $('t-crearsala').textContent = t('salaCrearSec');
+  $('t-unirsala').textContent = t('salaUnirSec');
+  $('sala-crear').textContent = t('salaCrearBtn');
+  $('sala-unirse').textContent = t('salaUnirBtn');
+  $('sala-nombre').placeholder = t('salaNombrePh');
+  $('sala-codigo').placeholder = t('salaCodigoPh');
+  $('salas-cancel').textContent = t('cancel');
   $('hist-stats-title').textContent = t('record');
   $('t-games').textContent = t('games');
   $('btn-hist-clear').textContent = t('clear');
@@ -754,6 +816,7 @@ var state = {
 
 function save(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+  if(typeof salaSync === 'function') salaSync();
 }
 function load(){
   try{
@@ -885,10 +948,15 @@ $('kp-ok').addEventListener('click', function(){
 function checkWinner(i){
   if(total(i) < state.goal) return;
   if(state.phase === 'over') return;
-  var loser = 1 - i;
-  var isPollona = total(loser) === 0;
   state.phase = 'over';
   save();
+  celebrar(i, false);
+}
+/* la fiesta del ganador — también se dispara cuando la victoria
+   llega desde otro teléfono de la sala */
+function celebrar(i, remoto){
+  var loser = 1 - i;
+  var isPollona = total(loser) === 0;
   addHistory({
     d: Date.now(),
     goal: state.goal,
@@ -1271,6 +1339,145 @@ function componentsInRect(test, W, x0, y0, x1, y1){
     }
   }
   return comps;
+}
+
+/* ============ SALAS con amigos (Firebase, tiempo real) ============ */
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDDqNow0a2aBFnz5obaqAS1KbSygPAgQYw",
+  authDomain: "domino-cubano-bf4d4.firebaseapp.com",
+  databaseURL: "https://domino-cubano-bf4d4-default-rtdb.firebaseio.com",
+  projectId: "domino-cubano-bf4d4",
+  storageBucket: "domino-cubano-bf4d4.firebasestorage.app",
+  messagingSenderId: "360126627769",
+  appId: "1:360126627769:web:41fd311d673835689fc068"
+};
+var SALA_KEY = 'apuntes-domino-sala';
+var fbState = 'no';           /* no | loading | ready | failed */
+var fbDB = null, fbUID = null;
+var fbQueue = [];
+function loadFirebase(cb){
+  if(fbState === 'ready'){ if(cb) cb(); return; }
+  if(cb) fbQueue.push(cb);
+  if(fbState === 'loading' || fbState === 'failed') return;
+  fbState = 'loading';
+  var files = ['fb-app.js', 'fb-auth.js', 'fb-db.js'];
+  var i = 0;
+  function nextScript(){
+    if(i >= files.length){ initFB(); return; }
+    var s = document.createElement('script');
+    s.src = files[i]; i++;
+    s.onload = nextScript;
+    s.onerror = function(){ fbState = 'failed'; salaMsg(t('salaErrRed')); };
+    document.head.appendChild(s);
+  }
+  function initFB(){
+    try{
+      firebase.initializeApp(FIREBASE_CONFIG);
+      firebase.auth().signInAnonymously().then(function(cred){
+        fbUID = cred.user.uid;
+        fbDB = firebase.database();
+        fbState = 'ready';
+        fbQueue.forEach(function(f){ try{ f(); }catch(e){} });
+        fbQueue = [];
+      }).catch(function(){ fbState = 'failed'; salaMsg(t('salaErrRed')); });
+    }catch(e){ fbState = 'failed'; salaMsg(t('salaErrRed')); }
+  }
+  nextScript();
+}
+function salaMsg(txt){ var el = $('sala-msg'); if(el) el.textContent = txt || ''; }
+
+var SALA = null;              /* {code, nombre, ref} */
+var aplicandoRemoto = false;
+
+function codigoNuevo(){
+  var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', c = '';
+  for(var i = 0; i < 5; i++) c += abc[Math.floor(Math.random() * abc.length)];
+  return c;
+}
+function normalizaJugadores(ps){
+  var out = (ps && ps.length === 2) ? ps : [{name:'',scores:[]},{name:'',scores:[]}];
+  out.forEach(function(p){ if(!p.scores) p.scores = []; if(!p.name) p.name = ''; });
+  return out;
+}
+function crearSala(){
+  var nombre = ($('sala-nombre').value || '').trim() || 'Mi sala';
+  salaMsg(t('salaConectando'));
+  loadFirebase(function(){
+    var code = codigoNuevo();
+    fbDB.ref('rooms/' + code).set({
+      nombre: nombre,
+      creada: firebase.database.ServerValue.TIMESTAMP,
+      host: fbUID,
+      estado: { goal: state.goal || 150, phase: 'setup',
+                players: [{name:''},{name:''}] }
+    }).then(function(){
+      entrarSala(code, nombre);
+    }).catch(function(){ salaMsg(t('salaErrRed')); });
+  });
+}
+function unirseSala(codeRaw){
+  var code = (codeRaw || '').trim().toUpperCase();
+  if(code.length < 4){ salaMsg(t('salaCodigoMal')); return; }
+  salaMsg(t('salaConectando'));
+  loadFirebase(function(){
+    fbDB.ref('rooms/' + code).once('value').then(function(snap){
+      if(!snap.exists()){ salaMsg(t('salaNoExiste')); return; }
+      entrarSala(code, (snap.val() || {}).nombre || code);
+    }).catch(function(){ salaMsg(t('salaErrRed')); });
+  });
+}
+function entrarSala(code, nombre){
+  if(SALA) salirSala(true);
+  SALA = { code: code, nombre: nombre, ref: fbDB.ref('rooms/' + code + '/estado') };
+  try{ fbDB.ref('rooms/' + code + '/miembros/' + fbUID)
+        .set({ ts: firebase.database.ServerValue.TIMESTAMP }); }catch(e){}
+  try{ localStorage.setItem(SALA_KEY, JSON.stringify({code: code, nombre: nombre})); }catch(e){}
+  SALA.ref.on('value', function(snap){
+    var v = snap.val();
+    if(!v || !SALA) return;
+    var prevPhase = state.phase;
+    aplicandoRemoto = true;
+    state = { phase: v.phase || 'setup', goal: v.goal || 150,
+              players: normalizaJugadores(v.players) };
+    aplicandoRemoto = false;
+    var settingsVisible = !$('scr-settings').classList.contains('hidden');
+    var histVisible = !$('scr-history').classList.contains('hidden');
+    if(!settingsVisible && !histVisible) render();
+    refreshSalaUI();
+    /* la victoria ocurrió en otro teléfono: celebrar aquí también */
+    if(prevPhase !== 'over' && state.phase === 'over'){
+      var wi = total(0) >= state.goal ? 0 : 1;
+      celebrar(wi, true);
+    }
+    if(prevPhase === 'over' && state.phase !== 'over'){ stopFx(); }
+  });
+  salaMsg('');
+  refreshSalaUI();
+}
+function salirSala(silencioso){
+  if(!SALA) return;
+  try{ SALA.ref.off(); }catch(e){}
+  try{ fbDB.ref('rooms/' + SALA.code + '/miembros/' + fbUID).remove(); }catch(e){}
+  SALA = null;
+  try{ localStorage.removeItem(SALA_KEY); }catch(e){}
+  if(!silencioso){ refreshSalaUI(); render(); }
+}
+function salaSync(){
+  if(!SALA || aplicandoRemoto || fbState !== 'ready') return;
+  try{
+    SALA.ref.set({ goal: state.goal, phase: state.phase,
+      players: state.players.map(function(p){
+        return { name: p.name || '', scores: p.scores || [] };
+      }) });
+  }catch(e){}
+}
+function refreshSalaUI(){
+  var en = !!SALA;
+  var act = $('sala-actual'), nue = $('sala-nueva'), inl = $('sala-inline');
+  if(act) act.classList.toggle('hidden', !en);
+  if(nue) nue.classList.toggle('hidden', en);
+  if(en && $('sala-info')) $('sala-info').textContent = '🏠 ' + SALA.nombre + ' · ' + t('salaCodigo') + ': ' + SALA.code;
+  if(inl) inl.textContent = en ? ' · 👥' + SALA.code : '';
 }
 
 /* ============ OpenCV (carga perezosa, con respaldo) ============ */
@@ -2171,6 +2378,30 @@ $('ov-count').addEventListener('click', function(e){ if(e.target === this) this.
   });
 });
 
+/* ============ UI de salas ============ */
+$('btn-salas').addEventListener('click', function(){
+  salaMsg('');
+  refreshSalaUI();
+  $('ov-salas').classList.remove('hidden');
+  loadFirebase();   /* calentar la conexión */
+});
+$('salas-cancel').addEventListener('click', function(){ $('ov-salas').classList.add('hidden'); });
+$('ov-salas').addEventListener('click', function(e){ if(e.target === this) this.classList.add('hidden'); });
+$('sala-crear').addEventListener('click', crearSala);
+$('sala-unirse').addEventListener('click', function(){ unirseSala($('sala-codigo').value); });
+$('sala-salir').addEventListener('click', function(){ salirSala(false); salaMsg(''); });
+$('sala-invitar').addEventListener('click', function(){
+  if(!SALA) return;
+  var link = APP_URL + '?sala=' + SALA.code;
+  var texto = tf('salaInviteTxt', SALA.nombre) + ' ' + t('salaCodigo') + ': ' + SALA.code;
+  if(navigator.share){
+    navigator.share({ title: 'Domino Cubano Counter', text: texto, url: link }).catch(function(){});
+  }else if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto + ' ' + link).then(function(){ salaMsg(t('shareCopied')); })
+      .catch(function(){ salaMsg(link); });
+  }else{ salaMsg(link); }
+});
+
 /* ============ navegación a ajustes ============ */
 function showSettings(){
   $('scr-setup').classList.add('hidden');
@@ -2295,6 +2526,30 @@ if(state.phase === 'over') state.phase = 'game';
 applySettings();
 render();
 showSettings();
+
+/* entrar a una sala: por enlace de invitación (?sala=CODE) o
+   reconectar a la sala donde ya estaba */
+(function(){
+  var m = location.search.match(/[?&]sala=([A-Za-z0-9]{4,6})/);
+  if(m){
+    $('scr-settings').classList.add('hidden');
+    render();
+    unirseSala(m[1]);
+    $('ov-salas').classList.remove('hidden');
+    return;
+  }
+  try{
+    var prev = JSON.parse(localStorage.getItem(SALA_KEY));
+    if(prev && prev.code){
+      loadFirebase(function(){
+        fbDB.ref('rooms/' + prev.code).once('value').then(function(snap){
+          if(snap.exists()) entrarSala(prev.code, prev.nombre || prev.code);
+          else { try{ localStorage.removeItem(SALA_KEY); }catch(e){} }
+        });
+      });
+    }
+  }catch(e){}
+})();
 </script>
 
 <script>

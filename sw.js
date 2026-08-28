@@ -1,5 +1,6 @@
-const CACHE = 'apuntes-domino-v12';
+const CACHE = 'apuntes-domino-v13';
 const FILES = ['.', 'index.html', 'manifest.json', 'opencv.js', 'count.js', 'pollona.mp4',
+  'fb-app.js', 'fb-auth.js', 'fb-db.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
   'sounds/gal01.mp3', 'sounds/gal02.mp3', 'sounds/gal03.mp3',
   'sounds/gal04.mp3', 'sounds/gal05.mp3',
