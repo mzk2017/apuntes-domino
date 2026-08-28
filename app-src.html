@@ -18,6 +18,9 @@
     --shadow:0 10px 30px rgba(0,0,0,.35);
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  /* Todo el tamaño de la app sale de esta letra base: crece sola con la
+     pantalla (teléfono pequeño → tablet → computadora) sin pasarse. */
+  html{font-size:clamp(16px, 1.15vmin + 12px, 23px)}
   html,body{height:100%}
   body{
     background:var(--felt);
@@ -30,7 +33,11 @@
   button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;touch-action:manipulation}
   input{font:inherit}
 
-  .screen{max-width:520px;margin:0 auto;padding:20px 16px calc(28px + env(safe-area-inset-bottom));min-height:100dvh;display:flex;flex-direction:column}
+  .screen{width:100%;max-width:520px;margin:0 auto;
+          padding:20px 16px calc(28px + env(safe-area-inset-bottom));
+          min-height:100dvh;display:flex;flex-direction:column}
+  /* la mesa de juego aprovecha TODO el ancho que haya */
+  #scr-juego{max-width:1500px}
   .hidden{display:none !important}
 
   /* ---------- domino logo ---------- */
@@ -294,6 +301,62 @@
 
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:.01s !important;transition-duration:.01s !important}
+  }
+
+  /* ============ que se ajuste a CUALQUIER pantalla ============
+     Teléfono pequeño, teléfono ancho, plegable, tablet o computadora:
+     la app siempre usa el espacio que hay, sin quedarse en una tirita
+     al medio ni salirse por los bordes. */
+
+  /* fichas de mi mano: el ancho lo calcula la app según el hueco que hay
+     y cuántas fichas tengo (--manoW), para que quepan siempre */
+  .jg-mano{--manoW:44px}
+  .fch.mano{width:var(--manoW);height:calc(var(--manoW) * 2)}
+  .fch.mano .pp{width:calc(var(--manoW) * .18);height:calc(var(--manoW) * .18)}
+  /* los jugadores de los lados, proporcionales */
+  .jg-seat.lado{flex:0 0 clamp(24px, 4.4vmin, 42px);font-size:clamp(.6rem, 1.5vmin, .85rem)}
+  .jg-seat.lado .fb{width:clamp(5px,1.1vmin,9px);height:clamp(9px,2vmin,16px)}
+
+  /* pantallas medianas (tablet de pie, plegable abierto, ventana grande) */
+  @media (min-width:700px){
+    .screen{max-width:760px;padding:26px 22px calc(30px + env(safe-area-inset-bottom))}
+    .jg-mesa{min-height:200px}
+    .board{gap:18px}
+    .col{padding:18px 16px;border-radius:24px}
+  }
+  /* pantallas grandes (tablet acostado, computadora) */
+  @media (min-width:1100px){
+    .screen{max-width:980px}
+    .jg-mesa{min-height:280px}
+  }
+  /* muy anchas: la mesa se lleva el ancho completo */
+  @media (min-width:1500px){
+    .screen{max-width:1120px}
+  }
+
+  /* pantallas bajitas (teléfono pequeño, o cualquier teléfono acostado):
+     se recortan los espacios para que todo quepa sin tener que rodar */
+  @media (max-height:660px){
+    .screen{padding:8px 14px calc(10px + env(safe-area-inset-bottom))}
+    .jg-top{margin-bottom:6px}
+    .jg-arena{gap:4px}
+    .jg-mesa{min-height:80px}
+    .jg-estado{margin:5px 0;font-size:.92rem}
+    .jg-mano-wrap{padding:7px}
+    .jg-mano{gap:6px}
+    .jg-acciones{margin-top:7px}
+    .jg-acciones button{padding:9px 0}
+    .jg-seat{padding:4px 10px;font-size:.76rem}
+  }
+  /* teléfono acostado: cada píxel de alto cuenta, así que fuera el
+     letrero de "te toca" (ya lo dice el puesto dorado y las fichas
+     encendidas) y la mesa puede achicarse más */
+  @media (max-height:470px){
+    .jg-estado{display:none}
+    .jg-top{margin-bottom:4px}
+    .jg-seat{padding:3px 8px;font-size:.7rem}
+    .jg-mesa{min-height:58px}
+    .jg-mano-wrap{padding:5px}
   }
 </style>
 
@@ -1853,9 +1916,14 @@ function dibujaCadena(fichas){
   }
   var maxW = Math.max(160, wrap.clientWidth - 24);
   var maxH = Math.max(140, wrap.clientHeight - 24);
-  /* de mayor a menor: se usa el más grande que quepa en la mesa */
-  var tiers = [[86, 43, ''], [72, 36, ''], [64, 32, ''], [54, 27, 'peq'],
-               [46, 23, 'peq'], [38, 19, 'mini'], [34, 17, 'mini'], [26, 13, 'mini']];
+  /* Los tamaños salen del hueco que hay: en un teléfono pequeño empiezan
+     chiquitas y en una tablet o computadora salen grandes. Se prueba de
+     mayor a menor y se usa el primero que quepa entero. */
+  var techo = Math.max(56, Math.min(170, Math.round(Math.min(maxW / 5, maxH / 3.2))));
+  var tiers = [];
+  for(var Lp = techo; Lp >= 22; Lp = Math.round(Lp * 0.88)){
+    tiers.push([Lp, Math.round(Lp / 2), Lp >= 52 ? '' : (Lp >= 34 ? 'peq' : 'mini')]);
+  }
 
   function calcular(L, S){
     /* Fichas pegaditas en la fila; las filas separadas lo justo para que
@@ -2544,6 +2612,48 @@ document.querySelectorAll('[data-fmhum]').forEach(function(b){
   });
 });
 
+/* Las fichas de mi mano se miden solas: se agrandan todo lo que el
+   hueco permita y se achican lo justo para que quepan siempre, en
+   cualquier pantalla (teléfono chiquito, tablet, computadora). */
+function ajustarMano(n){
+  if(!n) return;
+  var manoEl = $('jg-mano'), wrap = manoEl.parentElement;
+  var hueco = (wrap ? wrap.clientWidth : manoEl.clientWidth) - 22;
+  if(hueco < 60) return;
+  var gap = parseFloat(getComputedStyle(manoEl).gap) || 8;
+  var alto = window.innerHeight || 700;
+  /* de ancho: lo más grandes que quepan en una fila; si salen muy
+     chiquitas se prueba en dos filas, a ver si así se ven mejor */
+  var unaFila = Math.floor((hueco - gap * (n - 1)) / n);
+  var w = Math.min(unaFila, Math.floor(alto * 0.16));
+  if(unaFila < 34){
+    var porFila = Math.ceil(n / 2);
+    var dosFilas = Math.min(Math.floor((hueco - gap * (porFila - 1)) / porFila),
+                            Math.floor((alto * 0.32 - gap) / 4));
+    if(dosFilas > w) w = dosFilas;
+  }
+  w = Math.max(24, Math.min(w, 88));
+  manoEl.style.setProperty('--manoW', w + 'px');
+  /* y si aun así la pantalla se queda corta, se achican hasta que TODO
+     quepa sin tener que rodar el dedo. Si achicarlas ya no ayuda (lo que
+     sobra no es por la mano), se deja como estaba y se para. */
+  if(JUEGO && JUEGO.estado === 'jugando'){
+    var vueltas = 0, antes = document.documentElement.scrollHeight;
+    while(w > 26 && vueltas++ < 12 && antes > window.innerHeight + 8){
+      var previo = w;
+      w = Math.floor(w * 0.9);
+      manoEl.style.setProperty('--manoW', w + 'px');
+      var ahora = document.documentElement.scrollHeight;
+      if(ahora >= antes - 2){         /* no sirvió de nada: deshacer */
+        w = previo;
+        manoEl.style.setProperty('--manoW', w + 'px');
+        break;
+      }
+      antes = ahora;
+    }
+  }
+}
+
 /* --- render del juego --- */
 function renderJuego(){
   if($('scr-juego').classList.contains('hidden')) return;
@@ -2674,6 +2784,7 @@ function renderJuego(){
         })(id);
         manoEl.appendChild(f);
       });
+      ajustarMano(manoMia.length);
       /* barrita de acciones de la ficha seleccionada */
       var herr = $('jg-herr');
       herr.classList.toggle('hidden', !manoSel);
