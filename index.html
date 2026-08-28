@@ -1022,6 +1022,14 @@ $('btn-start').addEventListener('click', function(){
 
 /* ============ render ============ */
 function render(){
+  /* si la mesa de dominó está abierta, ella manda en la pantalla */
+  var juegoEl = $('scr-juego');
+  if(juegoEl && !juegoEl.classList.contains('hidden')){
+    $('scr-setup').classList.add('hidden');
+    $('scr-game').classList.add('hidden');
+    if(typeof renderJuego === 'function') renderJuego();
+    return;
+  }
   var inGame = state.phase !== 'setup';
   $('scr-setup').classList.toggle('hidden', inGame);
   $('scr-game').classList.toggle('hidden', !inGame);
