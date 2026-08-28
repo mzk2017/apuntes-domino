@@ -1874,6 +1874,11 @@ function abrirJuego(){
       normalizaJuego();
       renderJuego();
       maybeBot();   /* si le toca a la computadora, este teléfono la mueve */
+      /* sonidos de mesa para TODOS: la ficha al caer y el puño del que pasa */
+      if(JUEGO && prev && prev.estado === 'jugando' && JUEGO.estado !== 'esperando'){
+        if((JUEGO.mesa || []).length > (prev.mesa || []).length) sfxFicha();
+        else if((JUEGO.pases || 0) > (prev.pases || 0)) sfxPuno();
+      }
       /* ¡me toca a mí!: sonidito y vibración */
       if(JUEGO && JUEGO.estado === 'jugando' && JUEGO.turno === miAsiento() &&
          (!prev || prev.estado !== 'jugando' || prev.turno !== JUEGO.turno)){
@@ -2110,6 +2115,22 @@ function tonos(notas, vol){
     });
   }catch(e){}
 }
+/* sonidos de mesa: la ficha al caer y el puño cuando alguien pasa */
+function sfx(archivo, vol, ms){
+  try{
+    var a = new Audio('sounds/' + archivo);
+    a.volume = vol || 1;
+    var p = a.play();
+    if(p && p.catch) p.catch(function(){});
+    if(ms) setTimeout(function(){ try{ a.pause(); }catch(e){} }, ms);
+  }catch(e){}
+}
+function sfxFicha(){ sfx('ficha.mp3', 0.9, 700); }     /* solo el primer clack */
+function sfxPuno(){
+  sfx('puno.mp3', 1.0, 1200);   /* BIEN ALTO, como manda la tradición */
+  try{ if(navigator.vibrate) navigator.vibrate(200); }catch(e){}
+}
+
 function dingTeToca(){
   tonos([[880, 0], [1174.7, 0.14]]);
   try{ if(navigator.vibrate) navigator.vibrate([120, 60, 120]); }catch(e){}
