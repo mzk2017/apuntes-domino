@@ -219,6 +219,20 @@
   .hen-play{width:48px;height:48px;border-radius:50%;background:rgba(0,0,0,.25);border:2px solid var(--line);font-size:1.1rem;flex:none}
   .set-note{color:var(--bone-dim);font-size:.85rem;margin-top:6px}
 
+  /* ---------- colores de mesa ---------- */
+  body.mesa-azul:not(.light){--felt:#14344E;--felt-soft:#1B4566;--felt-deep:#0C2236}
+  body.mesa-vino:not(.light){--felt:#4A1620;--felt-soft:#601E2B;--felt-deep:#320E15}
+  body.mesa-morado:not(.light){--felt:#2E1A4A;--felt-soft:#3C2360;--felt-deep:#1E1032}
+  body.mesa-madera:not(.light){--felt:#4A3116;--felt-soft:#5E401E;--felt-deep:#33210E}
+  .mesa-chips{display:flex;gap:12px;justify-content:flex-start}
+  .mesa-chip{width:44px;height:44px;border-radius:50%;border:3px solid var(--line);transition:transform .1s}
+  .mesa-chip.sel{border-color:var(--gold);transform:scale(1.15)}
+  .mesa-chip[data-mesa="verde"]{background:#17402E}
+  .mesa-chip[data-mesa="azul"]{background:#14344E}
+  .mesa-chip[data-mesa="vino"]{background:#4A1620}
+  .mesa-chip[data-mesa="morado"]{background:#2E1A4A}
+  .mesa-chip[data-mesa="madera"]{background:#4A3116}
+
   /* ---------- tema claro ---------- */
   body.light{
     --felt:#E7E1D0;
@@ -295,6 +309,15 @@
     <div class="seg-row">
       <button class="seg-btn sel" data-lang="es">Español</button>
       <button class="seg-btn" data-lang="en">English</button>
+    </div>
+
+    <p class="set-section" id="t-mesa">Color de la mesa</p>
+    <div class="mesa-chips">
+      <button class="mesa-chip sel" data-mesa="verde" aria-label="Verde"></button>
+      <button class="mesa-chip" data-mesa="azul" aria-label="Azul"></button>
+      <button class="mesa-chip" data-mesa="vino" aria-label="Vino"></button>
+      <button class="mesa-chip" data-mesa="morado" aria-label="Morado"></button>
+      <button class="mesa-chip" data-mesa="madera" aria-label="Madera"></button>
     </div>
 
     <p class="set-section" id="t-theme">Tema</p>
@@ -392,6 +415,7 @@
   <div class="jg-top">
     <button class="hist-back" id="jg-volver">‹ <span id="t-jgvolver">Marcador</span></button>
     <div class="meta-chip" id="jg-sala-chip">👥 —</div>
+    <button class="icon-btn" id="jg-full" aria-label="Pantalla completa">⛶</button>
   </div>
   <div class="jg-players" id="jg-players"></div>
   <div class="jg-mesa"><div class="jg-cadena" id="jg-cadena"></div></div>
@@ -407,6 +431,16 @@
       <button class="seg-btn sel" data-jgset="6">Doble-6</button>
       <button class="seg-btn" data-jgset="9">Doble-9</button>
     </div>
+  </div>
+</div>
+
+<!-- nombre del jugador al sentarse -->
+<div class="overlay hidden" id="ov-nombre">
+  <div class="sheet">
+    <p class="sheet-title"><b id="t-nombretitle">¿Cómo te llamas?</b></p>
+    <input class="name-input" id="mi-nombre" maxlength="14" placeholder="Tu nombre" autocomplete="off">
+    <button class="big-btn" id="nombre-ok" style="margin:12px 0 0;padding:14px 0;font-size:1.2rem">¡Listo!</button>
+    <button class="kp-cancel" id="nombre-cancel">Cancelar</button>
   </div>
 </div>
 
@@ -616,13 +650,15 @@ var STORE_KEY = 'apuntes-domino-v1';
 
 /* ============ ajustes: idioma, tema, sonido de la gallina ============ */
 var SET_KEY = 'apuntes-domino-settings';
-var SETTINGS = { lang:'es', theme:'dark', hen:0 };
+var SETTINGS = { lang:'es', theme:'dark', hen:0, mesa:'verde' };
+var MESAS = ['verde','azul','vino','morado','madera'];
 try{
   var _s = JSON.parse(localStorage.getItem(SET_KEY));
   if(_s){
     if(_s.lang === 'en') SETTINGS.lang = 'en';
     if(_s.theme === 'light') SETTINGS.theme = 'light';
     if(typeof _s.hen === 'number' && _s.hen >= 0 && _s.hen <= 11) SETTINGS.hen = _s.hen | 0;
+    if(MESAS.indexOf(_s.mesa) >= 0) SETTINGS.mesa = _s.mesa;
   }
 }catch(e){}
 function saveSettings(){ try{ localStorage.setItem(SET_KEY, JSON.stringify(SETTINGS)); }catch(e){} }
@@ -684,6 +720,7 @@ var I18N = {
     jgPuntosGanados:'Se lleva {n} puntos para el marcador.',
     jgSentarme:'Sentarme a jugar', jgRepartir:'Repartir', jgPasar:'Paso 😔',
     ladoTitle:'¿Por cuál punta?', otraMano:'Repartir otra mano', verMarcador:'Ver el marcador',
+    mesaSec:'Color de la mesa', nombreTitle:'¿Cómo te llamas?', nombrePh:'Tu nombre', nombreOk:'¡Listo!',
     gritoSec:'El grito de ¡POLLONA!',
     gritoNone:'Sin grito grabado. ¡Graba tu POLLONAAA con el micrófono para que suene junto a las gallinas! 🎤',
     gritoHave:'🎤 Grito grabado ✓ — así sonará cada pollona.',
@@ -769,6 +806,7 @@ var I18N = {
     jgPuntosGanados:'Takes {n} points to the scoreboard.',
     jgSentarme:'Take a seat', jgRepartir:'Deal', jgPasar:'Pass 😔',
     ladoTitle:'Which end?', otraMano:'Deal another hand', verMarcador:'See the scoreboard',
+    mesaSec:'Table color', nombreTitle:'What is your name?', nombrePh:'Your name', nombreOk:'Done!',
     gritoSec:'The ¡POLLONA! shout',
     gritoNone:'No shout recorded. Record your POLLONAAA with the mic so it plays along with the hens! 🎤',
     gritoHave:'🎤 Shout recorded ✓ — every pollona will sound like this.',
@@ -804,6 +842,8 @@ function tf(k, val){ return t(k).replace('{n}', val).replace('{e}', val); }
 
 function applySettings(){
   document.body.classList.toggle('light', SETTINGS.theme === 'light');
+  MESAS.forEach(function(m){ document.body.classList.toggle('mesa-' + m, SETTINGS.mesa === m); });
+  document.querySelectorAll('.mesa-chip').forEach(function(c){ c.classList.toggle('sel', c.dataset.mesa === SETTINGS.mesa); });
   /* selectores marcados */
   document.querySelectorAll('[data-lang]').forEach(function(b){ b.classList.toggle('sel', b.dataset.lang === SETTINGS.lang); });
   document.querySelectorAll('[data-theme]').forEach(function(b){ b.classList.toggle('sel', b.dataset.theme === SETTINGS.theme); });
@@ -864,6 +904,10 @@ function applySettings(){
   $('jg-repartir').textContent = t('jgRepartir');
   $('jg-pasar').textContent = t('jgPasar');
   $('t-ladotitle').textContent = t('ladoTitle');
+  $('t-mesa').textContent = t('mesaSec');
+  $('t-nombretitle').textContent = t('nombreTitle');
+  $('mi-nombre').placeholder = t('nombrePh');
+  $('nombre-ok').textContent = t('nombreOk');
   $('t-otramano').textContent = t('otraMano');
   $('t-vermarcador').textContent = t('verMarcador');
   $('sala-unirse').textContent = t('salaUnirBtn');
@@ -1722,16 +1766,26 @@ function normalizaJuego(){
 }
 
 /* --- acciones --- */
+var NOMBRE_KEY = 'apuntes-domino-minombre';
 function sentarme(){
   if(!SALA || fbState !== 'ready') return;
   if(miAsiento() >= 0) return;
   if(JUEGO && JUEGO.estado === 'jugando') return;   /* no sentarse a mitad de mano */
+  /* primero: ¿cómo te llamas? */
+  var guardado = '';
+  try{ guardado = localStorage.getItem(NOMBRE_KEY) || ''; }catch(e){}
+  $('mi-nombre').value = guardado;
+  $('ov-nombre').classList.remove('hidden');
+  setTimeout(function(){ $('mi-nombre').focus(); }, 100);
+}
+function reclamarAsiento(nombre){
+  try{ localStorage.setItem(NOMBRE_KEY, nombre); }catch(e){}
   /* reserva atómica del asiento: si dos personas tocan a la vez,
      solo una se queda con el puesto y la otra pasa al siguiente */
   function intenta(i){
     if(i >= 4) return;
     fbDB.ref('rooms/' + SALA.code + '/juego/asientos/' + i).transaction(function(cur){
-      if(cur === null) return { uid: fbUID, nombre: 'Jugador ' + (i + 1) };
+      if(cur === null) return { uid: fbUID, nombre: nombre };
       return;   /* ocupado: abortar */
     }, function(err, committed){
       if(err || !committed) intenta(i + 1);
@@ -1739,6 +1793,12 @@ function sentarme(){
   }
   intenta(0);
 }
+$('nombre-ok').addEventListener('click', function(){
+  var n = ($('mi-nombre').value || '').trim() || 'Jugador';
+  $('ov-nombre').classList.add('hidden');
+  reclamarAsiento(n);
+});
+$('nombre-cancel').addEventListener('click', function(){ $('ov-nombre').classList.add('hidden'); });
 function repartir(){
   if(!SALA) return;
   var n = asientosOcupados();
@@ -1757,6 +1817,16 @@ function repartir(){
     asientos: JUEGO.asientos, manos: manos,
     mesa: [], turno: seats[0], pases: 0, dealer: fbUID
   });
+  /* el marcador toma los nombres de los jugadores/parejas de la mesa */
+  var eq0 = [], eq1 = [];
+  seats.forEach(function(s){
+    var nm = JUEGO.asientos[s].nombre;
+    (equipoDe(s, n) === 0 ? eq0 : eq1).push(nm);
+  });
+  state.players[0].name = eq0.join(' y ');
+  state.players[1].name = eq1.join(' y ');
+  if(state.phase === 'setup') state.phase = 'game';
+  save();
 }
 function jugarFicha(id, lado){
   var seat = miAsiento();
@@ -1942,6 +2012,12 @@ function renderJuego(){
 /* --- eventos del juego --- */
 $('sala-jugar').addEventListener('click', function(){ loadFirebase(abrirJuego); });
 $('jg-volver').addEventListener('click', cerrarJuego);
+$('jg-full').addEventListener('click', function(){
+  try{
+    if(document.fullscreenElement){ document.exitFullscreen(); }
+    else{ document.documentElement.requestFullscreen(); }
+  }catch(e){}
+});
 $('jg-sentarme').addEventListener('click', sentarme);
 $('jg-repartir').addEventListener('click', repartir);
 $('jg-pasar').addEventListener('click', pasar);
@@ -2915,6 +2991,12 @@ document.querySelectorAll('[data-lang]').forEach(function(b){
 document.querySelectorAll('[data-theme]').forEach(function(b){
   b.addEventListener('click', function(){
     SETTINGS.theme = b.dataset.theme;
+    saveSettings(); applySettings();
+  });
+});
+document.querySelectorAll('.mesa-chip').forEach(function(b){
+  b.addEventListener('click', function(){
+    SETTINGS.mesa = b.dataset.mesa;
     saveSettings(); applySettings();
   });
 });
