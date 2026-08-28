@@ -464,6 +464,7 @@
       <button id="jg-sentarme" class="principal">Sentarme a jugar</button>
       <button id="jg-repartir" class="principal hidden">Repartir</button>
       <button id="jg-pasar" class="hidden">Paso 😔</button>
+      <button id="jg-cancelar" class="hidden">✖ Cancelar juego</button>
     </div>
     <div class="seg-row hidden" id="jg-setrow" style="margin-top:10px">
       <button class="seg-btn sel" data-jgset="6">Doble-6</button>
@@ -475,6 +476,11 @@
       <button class="seg-btn" data-humanos="2">2</button>
       <button class="seg-btn" data-humanos="3">3</button>
       <button class="seg-btn sel" data-humanos="4">4</button>
+    </div>
+    <p class="set-section hidden" id="t-jgbots" style="margin:10px 0 6px">¿Juega la computadora?</p>
+    <div class="seg-row hidden" id="jg-botsrow">
+      <button class="seg-btn sel" data-jgbots="1">Sí 🤖</button>
+      <button class="seg-btn" data-jgbots="0">No</button>
     </div>
     <p class="set-note hidden" id="jg-humanos-nota" style="text-align:center;margin-top:6px"></p>
   </div>
@@ -782,6 +788,9 @@ var I18N = {
     jgCuantos:'¿Cuántas personas van a jugar?',
     fmCuantos:'¿Cuántas personas juegan la próxima?',
     jgSentadas:'Sentadas: {n} de {e}', jgCompus:'la computadora pone {n} 🤖',
+    jgBotsQ:'¿Juega la computadora?', jgBotsSi:'Sí 🤖', jgBotsNo:'No',
+    jgBotsForzada:'con {n} en la mesa, la computadora completa',
+    jgCancelar:'✖ Cancelar juego',
     jgFaltanPersonas:'Hay {n} personas sentadas y elegiste {e} — que se sienten todas (o cambia el número).',
     gritoSec:'El grito de ¡POLLONA!',
     gritoNone:'Sin grito grabado. ¡Graba tu POLLONAAA con el micrófono para que suene junto a las gallinas! 🎤',
@@ -874,6 +883,9 @@ var I18N = {
     jgCuantos:'How many people will play?',
     fmCuantos:'How many people play the next one?',
     jgSentadas:'Seated: {n} of {e}', jgCompus:'the computer adds {n} 🤖',
+    jgBotsQ:'Does the computer play?', jgBotsSi:'Yes 🤖', jgBotsNo:'No',
+    jgBotsForzada:'with {n} at the table, the computer fills in',
+    jgCancelar:'✖ Cancel game',
     jgFaltanPersonas:'{n} people are seated but you chose {e} — everyone sit down (or change the number).',
     gritoSec:'The ¡POLLONA! shout',
     gritoNone:'No shout recorded. Record your POLLONAAA with the mic so it plays along with the hens! 🎤',
@@ -972,6 +984,11 @@ function applySettings(){
   $('jg-repartir').textContent = t('jgRepartir');
   $('jg-pasar').textContent = t('jgPasar');
   $('t-jgcuantos').textContent = t('jgCuantos');
+  $('t-jgbots').textContent = t('jgBotsQ');
+  document.querySelectorAll('[data-jgbots]').forEach(function(b){
+    b.textContent = b.dataset.jgbots === '1' ? t('jgBotsSi') : t('jgBotsNo');
+  });
+  $('jg-cancelar').textContent = t('jgCancelar');
   if(typeof humanosSel !== 'undefined'){
     document.querySelectorAll('[data-humanos]').forEach(function(b){
       b.classList.toggle('sel', parseInt(b.dataset.humanos, 10) === humanosSel);
@@ -1985,6 +2002,12 @@ function humanosSentados(){
       if(JUEGO.asientos[k] && !JUEGO.asientos[k].bot) n++;
   return n;
 }
+/* ¿la computadora completa la mesa? Es elección del jugador, pero con
+   1 o 3 personas no queda otra: sin la compu no se forman las parejas */
+var botsSel = true;
+try{ botsSel = localStorage.getItem('apuntes-domino-bots') !== 'no'; }catch(e){}
+function botsForzados(){ return humanosSel === 1 || humanosSel === 3; }
+function botsOn(){ return botsSel || botsForzados(); }
 function repartir(){
   if(!SALA) return;
   /* deben estar sentadas exactamente las personas elegidas */
@@ -1993,17 +2016,27 @@ function repartir(){
       .replace('{n}', humanosSentados()).replace('{e}', humanosSel);
     return;
   }
-  var asientosFinal = {};
+  var conBots = botsOn();
+  var humanos = [];
   for(var k0 in (JUEGO && JUEGO.asientos) || {}){
-    if(JUEGO.asientos[k0] && !JUEGO.asientos[k0].bot) asientosFinal[k0] = JUEGO.asientos[k0];
+    if(JUEGO.asientos[k0] && !JUEGO.asientos[k0].bot) humanos.push(parseInt(k0, 10));
   }
-  /* la computadora completa la mesa hasta 4 */
-  for(var i = 0; i < 4; i++){
-    if(!asientosFinal[i]){
-      asientosFinal[i] = { uid: 'bot-' + i, nombre: t('compu') + ' ' + (i + 1), bot: true };
+  humanos.sort();
+  var asientosFinal = {}, n;
+  if(conBots){
+    /* la computadora completa la mesa hasta 4 */
+    humanos.forEach(function(s){ asientosFinal[s] = JUEGO.asientos[s]; });
+    for(var i = 0; i < 4; i++){
+      if(!asientosFinal[i]){
+        asientosFinal[i] = { uid: 'bot-' + i, nombre: t('compu') + ' ' + (i + 1), bot: true };
+      }
     }
+    n = 4;
+  }else{
+    /* solo personas: se corren a los primeros asientos (2 = uno contra uno, 4 = parejas) */
+    humanos.forEach(function(s, idx){ asientosFinal[idx] = JUEGO.asientos[s]; });
+    n = humanos.length;
   }
-  var n = 4;
   var porJug = jgSet === 9 ? 10 : 7;
   var cartas = barajar(mazo(jgSet));
   var manos = {};
@@ -2151,21 +2184,70 @@ function tonos(notas, vol){
     });
   }catch(e){}
 }
-/* sonidos de mesa: la ficha al caer y el puño cuando alguien pasa */
-function sfx(archivo, vol, ms){
+/* sonidos de mesa: la ficha al caer y el puño cuando alguien pasa.
+   Van incrustados dentro de la propia app (así suenan también en la
+   versión del enlace de Claude y sin internet) y salen por WebAudio,
+   que permite empujar el volumen por encima del máximo normal. */
+var SND_FICHA = "%%FICHA%%";
+var SND_PUNO = "%%PUNO%%";
+var sfxBuf = {}, sfxComp = null;
+function sfxSalida(){
+  if(!sfxComp){
+    sfxComp = beepCtx.createDynamicsCompressor();   /* evita que el golpe raspe */
+    sfxComp.connect(beepCtx.destination);
+  }
+  return sfxComp;
+}
+function sfxCarga(nombre, uri){
   try{
-    var a = new Audio('sounds/' + archivo);
-    a.volume = vol || 1;
-    var p = a.play();
-    if(p && p.catch) p.catch(function(){});
-    if(ms) setTimeout(function(){ try{ a.pause(); }catch(e){} }, ms);
+    if(!beepCtx) beepCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(sfxBuf[nombre] || sfxBuf[nombre + ':va']) return;
+    sfxBuf[nombre + ':va'] = true;
+    fetch(uri).then(function(r){ return r.arrayBuffer(); })
+      .then(function(ab){
+        return new Promise(function(res, rej){ beepCtx.decodeAudioData(ab, res, rej); });
+      })
+      .then(function(buf){ sfxBuf[nombre] = buf; })
+      .catch(function(){ sfxBuf[nombre + ':va'] = false; });
   }catch(e){}
 }
-function sfxFicha(){ sfx('ficha.mp3', 0.9, 700); }     /* solo el primer clack */
-function sfxPuno(){
-  sfx('puno.mp3', 1.0, 1200);   /* BIEN ALTO, como manda la tradición */
-  try{ if(navigator.vibrate) navigator.vibrate(200); }catch(e){}
+function sfxSuena(nombre, uri, vol, seg, archivo){
+  try{
+    sfxCarga(nombre, uri);
+    if(beepCtx && beepCtx.state === 'suspended') beepCtx.resume();
+    var buf = sfxBuf[nombre];
+    if(buf){
+      var s = beepCtx.createBufferSource(), g = beepCtx.createGain();
+      s.buffer = buf; g.gain.value = vol;
+      s.connect(g); g.connect(sfxSalida());
+      s.start(0, 0, Math.min(seg, buf.duration));
+      return;
+    }
+  }catch(e){}
+  /* respaldo mientras carga: el archivo suelto */
+  try{
+    var a = new Audio('sounds/' + archivo);
+    a.volume = Math.min(vol, 1);
+    var p = a.play();
+    if(p && p.catch) p.catch(function(){});
+    setTimeout(function(){ try{ a.pause(); }catch(e){} }, seg * 1000);
+  }catch(e){}
 }
+function sfxFicha(){ sfxSuena('ficha', SND_FICHA, 1.4, 0.7, 'ficha.mp3'); }
+function sfxPuno(){
+  sfxSuena('puno', SND_PUNO, 2.4, 1.2, 'puno.mp3');   /* ¡BIEN ALTO, como manda la tradición! */
+  try{ if(navigator.vibrate) navigator.vibrate([180, 60, 120]); }catch(e){}
+}
+/* al primer toque en la pantalla el teléfono despierta el audio
+   y dejamos los dos golpes listos para salir sin demora */
+document.addEventListener('pointerdown', function(){
+  try{
+    if(!beepCtx) beepCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(beepCtx.state === 'suspended') beepCtx.resume();
+    sfxCarga('ficha', SND_FICHA);
+    sfxCarga('puno', SND_PUNO);
+  }catch(e){}
+}, { once: true });
 
 function dingTeToca(){
   tonos([[880, 0], [1174.7, 0.14]]);
@@ -2197,7 +2279,7 @@ function refrescarFmHumanos(){
   document.querySelectorAll('[data-fmhum]').forEach(function(b){
     b.classList.toggle('sel', parseInt(b.dataset.fmhum, 10) === humanosSel);
   });
-  var compus = 4 - humanosSel;
+  var compus = botsOn() ? 4 - humanosSel : 0;
   var sentadas = humanosSentados();
   $('t-fmcuantos').textContent = t('fmCuantos');
   $('fm-nota').textContent = t('jgSentadas').replace('{n}', sentadas).replace('{e}', humanosSel) +
@@ -2284,11 +2366,22 @@ function renderJuego(){
   $('t-jgcuantos').classList.toggle('hidden', !preJuego);
   $('jg-humanosrow').classList.toggle('hidden', !preJuego);
   $('jg-humanos-nota').classList.toggle('hidden', !preJuego);
+  $('t-jgbots').classList.toggle('hidden', !preJuego);
+  $('jg-botsrow').classList.toggle('hidden', !preJuego);
+  $('jg-cancelar').classList.toggle('hidden', !preJuego);
   if(preJuego){
-    var compus = 4 - humanosSel;
+    var conBots = botsOn(), forz = botsForzados();
+    document.querySelectorAll('[data-jgbots]').forEach(function(b){
+      var esSi = b.dataset.jgbots === '1';
+      b.classList.toggle('sel', esSi === conBots);
+      b.disabled = forz && !esSi;
+      b.style.opacity = (forz && !esSi) ? '.4' : '';
+    });
+    var compus = conBots ? 4 - humanosSel : 0;
     $('jg-humanos-nota').textContent =
       t('jgSentadas').replace('{n}', humanosSentados()).replace('{e}', humanosSel) +
-      (compus > 0 ? ' · ' + t('jgCompus').replace('{n}', compus) : '');
+      (compus > 0 ? ' · ' + t('jgCompus').replace('{n}', compus) : '') +
+      (forz ? ' · ' + t('jgBotsForzada').replace('{n}', humanosSel) : '');
   }
   var miTurno = JUEGO && JUEGO.estado === 'jugando' && JUEGO.turno === seat;
   $('jg-pasar').classList.toggle('hidden', !(JUEGO && JUEGO.estado === 'jugando' && sentado));
@@ -2433,6 +2526,21 @@ document.querySelectorAll('[data-humanos]').forEach(function(b){
     document.querySelectorAll('[data-humanos]').forEach(function(o){ o.classList.toggle('sel', o === b); });
     renderJuego();
   });
+});
+document.querySelectorAll('[data-jgbots]').forEach(function(b){
+  b.addEventListener('click', function(){
+    if(botsForzados()) return;
+    botsSel = b.dataset.jgbots === '1';
+    try{ localStorage.setItem('apuntes-domino-bots', botsSel ? 'si' : 'no'); }catch(e){}
+    renderJuego();
+  });
+});
+/* cancelar la espera: me levanto; si soy la última persona, la mesa queda limpia */
+$('jg-cancelar').addEventListener('click', function(){
+  var s = miAsiento();
+  if(s < 0 || !jgRef) return;
+  if(humanosSentados() <= 1){ jgRef.set(null); }
+  else{ jgRef.child('asientos/' + s).set(null); }
 });
 
 /* --- eventos del juego --- */
