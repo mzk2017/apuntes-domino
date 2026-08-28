@@ -172,11 +172,15 @@
   .fch.h .mitad:first-child{border-right:2px solid #221D15}
   .fch.v .mitad:first-child{border-bottom:2px solid #221D15}
   .fch .pp{position:absolute;width:6px;height:6px;border-radius:50%;background:#221D15;transform:translate(-50%,-50%)}
-  .fch.mano{width:44px;height:88px;cursor:pointer;transition:transform .1s}
+  .fch.mano{width:44px;height:88px;cursor:pointer;transition:transform .12s}
   .fch.mano .pp{width:8px;height:8px}
   .fch.mano.jugable{outline:3px solid var(--gold);outline-offset:2px}
-  .fch.mano.jugable:active{transform:translateY(-8px)}
-  .fch.mano:not(.jugable){opacity:.55}
+  .fch.mano:not(.jugable){opacity:.6}
+  .fch.mano.sel{transform:translateY(-10px);outline:4px solid #fff;outline-offset:2px;opacity:1}
+  .jg-herr{display:flex;gap:8px;margin-top:10px}
+  .jg-herr button{flex:1;padding:11px 0;border-radius:12px;font-family:'Lilita One',cursive;font-size:1rem;background:rgba(255,255,255,.1);color:var(--bone);border:1.5px solid var(--line)}
+  .jg-herr button.principal{background:var(--gold);color:var(--ink);border:none}
+  .jg-herr button:disabled{opacity:.35}
   body.light .fch{box-shadow:0 2px 4px rgba(0,0,0,.25)}
 
   /* ---------- contador de fichas por foto ---------- */
@@ -423,6 +427,13 @@
   <p class="jg-estado" id="jg-estado">—</p>
   <div class="jg-mano-wrap">
     <div class="jg-mano" id="jg-mano"></div>
+    <div class="jg-herr hidden" id="jg-herr">
+      <button id="herr-jugar" class="principal">▶ Jugar</button>
+      <button id="herr-virar">🔄 Virar</button>
+      <button id="herr-izq" aria-label="Mover a la izquierda">⬅</button>
+      <button id="herr-der" aria-label="Mover a la derecha">➡</button>
+      <button id="herr-x" aria-label="Cerrar">✕</button>
+    </div>
     <div class="jg-acciones">
       <button id="jg-sentarme" class="principal">Sentarme a jugar</button>
       <button id="jg-repartir" class="principal hidden">Repartir</button>
@@ -1954,6 +1965,7 @@ function renderJuego(){
   var seat = miAsiento();
   var mesaEl = $('jg-cadena'); mesaEl.innerHTML = '';
   var manoEl = $('jg-mano'); manoEl.innerHTML = '';
+  $('jg-herr').classList.add('hidden');
   var nJug = (JUEGO && JUEGO.nJug) || asientosOcupados();
 
   /* los 4 alrededor de la mesa: TÚ abajo, tu pareja al frente,
@@ -2008,17 +2020,33 @@ function renderJuego(){
       : t('jgSientate');
   }else if(JUEGO.estado === 'jugando'){
     if(sentado){
-      var manoMia = JUEGO.manos[fbUID] || [];
+      var manoMia = ordenarMano(JUEGO.manos[fbUID] || []);
       var jugables = miTurno ? jugadasDe(manoMia) : [];
+      if(manoSel && manoMia.indexOf(manoSel) < 0) manoSel = null;
       manoMia.forEach(function(id){
         var v = fv(id);
-        var f = fichaHTML(v[0], v[1], 'v mano');
-        if(miTurno && jugables.indexOf(id) >= 0){
-          f.classList.add('jugable');
-          (function(idd){ f.addEventListener('click', function(){ jugarFicha(idd); }); })(id);
-        }
+        var girada = !!manoPref.flips[id];
+        var f = fichaHTML(girada ? v[1] : v[0], girada ? v[0] : v[1], 'v mano');
+        if(miTurno && jugables.indexOf(id) >= 0) f.classList.add('jugable');
+        if(manoSel === id) f.classList.add('sel');
+        (function(idd){
+          f.addEventListener('click', function(){
+            if(manoSel === idd && miTurno && jugables.indexOf(idd) >= 0){
+              manoSel = null; jugarFicha(idd);
+            }else{
+              manoSel = (manoSel === idd) ? null : idd;
+              renderJuego();
+            }
+          });
+        })(id);
         manoEl.appendChild(f);
       });
+      /* barrita de acciones de la ficha seleccionada */
+      var herr = $('jg-herr');
+      herr.classList.toggle('hidden', !manoSel);
+      if(manoSel){
+        $('herr-jugar').disabled = !(miTurno && jugables.indexOf(manoSel) >= 0);
+      }
       $('jg-pasar').disabled = !(miTurno && jugables.length === 0);
       estadoTxt = miTurno
         ? (jugables.length ? t('jgTeToca') : t('jgSinJugada'))
@@ -2029,6 +2057,46 @@ function renderJuego(){
   }
   $('jg-estado').innerHTML = estadoTxt;
 }
+
+/* --- acomodar y virar MIS fichas (preferencia local de cada teléfono) --- */
+var MANO_KEY = 'apuntes-domino-mano';
+var manoSel = null;
+var manoPref = { order: [], flips: {} };
+try{
+  var _mp = JSON.parse(localStorage.getItem(MANO_KEY));
+  if(_mp && _mp.order) manoPref = _mp;
+}catch(e){}
+function guardarManoPref(){
+  try{ localStorage.setItem(MANO_KEY, JSON.stringify(manoPref)); }catch(e){}
+}
+function ordenarMano(mano){
+  var enOrden = manoPref.order.filter(function(id){ return mano.indexOf(id) >= 0; });
+  mano.forEach(function(id){ if(enOrden.indexOf(id) < 0) enOrden.push(id); });
+  return enOrden;
+}
+function moverFicha(dir){
+  if(!manoSel || !JUEGO || !JUEGO.manos) return;
+  var lista = ordenarMano(JUEGO.manos[fbUID] || []);
+  var i = lista.indexOf(manoSel);
+  var j = i + dir;
+  if(i < 0 || j < 0 || j >= lista.length) return;
+  var tmp = lista[i]; lista[i] = lista[j]; lista[j] = tmp;
+  manoPref.order = lista;
+  guardarManoPref();
+  renderJuego();
+}
+$('herr-jugar').addEventListener('click', function(){
+  if(manoSel){ var id = manoSel; manoSel = null; jugarFicha(id); }
+});
+$('herr-virar').addEventListener('click', function(){
+  if(!manoSel) return;
+  manoPref.flips[manoSel] = !manoPref.flips[manoSel];
+  guardarManoPref();
+  renderJuego();
+});
+$('herr-izq').addEventListener('click', function(){ moverFicha(-1); });
+$('herr-der').addEventListener('click', function(){ moverFicha(1); });
+$('herr-x').addEventListener('click', function(){ manoSel = null; renderJuego(); });
 
 /* --- eventos del juego --- */
 $('sala-jugar').addEventListener('click', function(){ loadFirebase(abrirJuego); });
