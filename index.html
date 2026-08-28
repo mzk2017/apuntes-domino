@@ -163,8 +163,10 @@
   .jg-seat.rojo{border-color:var(--red)} .jg-seat.azul{border-color:var(--blue)}
   .jg-seat.turno{background:var(--gold);color:var(--ink);border-color:var(--gold)}
   .jg-seat.libre{opacity:.45;border-style:dashed}
-  .jg-seat.lado{writing-mode:vertical-rl;padding:12px 6px;margin:auto 0;max-height:100%;overflow:hidden;text-overflow:ellipsis}
-  .jg-seat.izq{transform:rotate(180deg)}
+  .jg-fila{position:relative}
+  .jg-seat.lado{position:absolute;top:8px;z-index:3;font-size:.72rem;padding:5px 9px;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(0,0,0,.55);margin:0}
+  .jg-seat.izq{left:4px}
+  .jg-seat.der{right:4px}
   .jg-seat.oculto{display:none}
   .jg-mesa{flex:1;min-height:120px;min-width:0;background:rgba(0,0,0,.28);border:1.5px solid var(--line);border-radius:16px;padding:8px;overflow:auto;display:flex;align-items:center}
   .jg-cadena{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:2px;row-gap:8px;margin:auto;padding:4px}
@@ -1764,30 +1766,35 @@ function dibujaCadena(fichas){
   var tiers = [[64, 32, ''], [46, 23, 'peq'], [34, 17, 'mini'], [26, 13, 'mini']];
 
   function calcular(L, S){
-    var pitch = L + 4;
+    /* filas pegaditas: cada fila nueva arranca justo donde termina la
+       ficha vertical de la vuelta — serpiente continua, sin huecos */
+    var resp = 6;                    /* respiro mínimo entre filas */
+    var pitch = (L - S) + resp;
+    var sobra = (L - S) / 2;         /* lo que sobresale un doble */
     var pos = [], row = 0, dx = 1, x = 0;
     for(var i = 0; i < fichas.length; i++){
       var f = fichas[i];
       var doble = f.a === f.b;
       var wT = doble ? S : L;
       var cabe = dx === 1 ? (x + wT <= maxW) : (x - wT >= 0);
+      var rowTop = sobra + row * pitch;
       if(!cabe && pos.length){
-        /* doblar: esta ficha baja en vertical por la orilla */
+        /* la vuelta: ficha vertical en la orilla que une las dos filas */
         var tx = dx === 1 ? Math.min(x, maxW - S) : Math.max(x - S, 0);
-        pos.push({x: tx, y: row * pitch + L / 2, w: S, h: L, vert: true, flip: false, f: f});
+        pos.push({x: tx, y: rowTop, w: S, h: pitch + S, vert: true, flip: false, f: f});
         row++; dx = -dx;
         x = dx === 1 ? tx + S : tx;
         continue;
       }
       if(doble){
-        pos.push({x: dx === 1 ? x : x - S, y: row * pitch, w: S, h: L, vert: true, flip: false, f: f});
+        pos.push({x: dx === 1 ? x : x - S, y: rowTop - sobra + resp / 2, w: S, h: L, vert: true, flip: false, f: f});
         x += dx * S;
       }else{
-        pos.push({x: dx === 1 ? x : x - L, y: row * pitch + (L - S) / 2, w: L, h: S, vert: false, flip: dx === -1, f: f});
+        pos.push({x: dx === 1 ? x : x - L, y: rowTop, w: L, h: S, vert: false, flip: dx === -1, f: f});
         x += dx * L;
       }
     }
-    return { pos: pos, alto: (row + 1) * pitch + L / 2, filas: row + 1 };
+    return { pos: pos, alto: sobra + row * pitch + S + sobra, filas: row + 1 };
   }
 
   var elegido = null, tierCls = '';
@@ -1886,8 +1893,9 @@ function abrirJuego(){
       normalizaJuego();
       renderJuego();
       maybeBot();   /* si le toca a la computadora, este teléfono la mueve */
-      /* sonidos de mesa para TODOS: la ficha al caer y el puño del que pasa */
-      if(JUEGO && prev && prev.estado === 'jugando' && JUEGO.estado !== 'esperando'){
+      /* sonidos de mesa para TODOS (los propios ya sonaron al instante) */
+      if(JUEGO && prev && prev.estado === 'jugando' && JUEGO.estado !== 'esperando' &&
+         prev.turno !== miAsiento()){
         if((JUEGO.mesa || []).length > (prev.mesa || []).length) sfxFicha();
         else if((JUEGO.pases || 0) > (prev.pases || 0)) sfxPuno();
       }
@@ -2038,6 +2046,7 @@ function jugarFicha(id, lado){
     }else return;
   }
   mano.splice(idx, 1);
+  sfxFicha();   /* el clack al instante en mi teléfono */
   var upd = { mesa: mesa, pases: 0 };
   upd['manos/' + fbUID] = mano;
   if(mano.length === 0){
@@ -2051,6 +2060,7 @@ function pasar(){
   var seat = miAsiento();
   if(!JUEGO || JUEGO.estado !== 'jugando' || JUEGO.turno !== seat) return;
   if(jugadasDe(JUEGO.manos[fbUID]).length){ return; }  /* tiene jugada: no puede pasar */
+  sfxPuno();    /* ¡el puñetazo al instante! */
   var pases = (JUEGO.pases || 0) + 1;
   if(pases >= (JUEGO.nJug || asientosOcupados())){
     finalizarMano(seat, 'tranca', { pases: pases });
