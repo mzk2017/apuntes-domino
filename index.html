@@ -3079,6 +3079,18 @@ $('hen-play').addEventListener('click', function(){
   }catch(e){}
 });
 
+/* ============ interruptor: contador por foto (escondido por ahora) ============ */
+var FOTO_ACTIVA = false;   /* cambiar a true para revivir la cámara y la calibración */
+if(!FOTO_ACTIVA){
+  ['btn-cam', 't-calibsec', 'set-calib-status', 't-learnsec', 'learn-status'].forEach(function(id){
+    var el = $(id); if(el) el.classList.add('hidden');
+  });
+  var calBtn = $('set-calibrate');
+  if(calBtn && calBtn.parentElement) calBtn.parentElement.classList.add('hidden');
+  var lrnBtn = $('learn-reset');
+  if(lrnBtn && lrnBtn.parentElement) lrnBtn.parentElement.classList.add('hidden');
+}
+
 /* ============ arranque: la app abre en el Home ============ */
 load();
 if(state.phase === 'over') state.phase = 'game';
