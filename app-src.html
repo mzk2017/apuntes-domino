@@ -197,7 +197,9 @@
   .jg-estado b{color:var(--gold)}
   .jg-mano-wrap{background:rgba(0,0,0,.22);border:1.5px solid var(--line);border-radius:16px;padding:10px}
   .jg-mano{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-  .jg-acciones{display:flex;gap:10px;margin-top:10px}
+  .jg-acciones{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+  /* el botón de empezar va solo y grande: es LO que hay que tocar */
+  #jg-repartir{flex:1 0 100%;font-size:1.25rem;padding:16px 0}
   .jg-acciones button{flex:1;padding:12px 0;border-radius:12px;font-family:'Lilita One',cursive;font-size:1.05rem;background:rgba(255,255,255,.1);color:var(--bone);border:1.5px solid var(--line)}
   .jg-acciones button.principal{background:var(--gold);color:var(--ink);border:none;box-shadow:0 4px 0 rgba(0,0,0,.35)}
   .jg-acciones button:disabled{opacity:.35}
@@ -934,8 +936,8 @@ var I18N = {
     salaInviteTxt:'¡Únete a mi sala de dominó "{n}"! Abre el enlace y entra directo. 🎲',
     salaJugar:'Jugar dominó aquí en la app',
     jgVolver:'Marcador', jgSientate:'Toca "Sentarme a jugar" para ocupar un puesto.',
-    jgEsperando:'Esperando más jugadores… (se juega con 2 o 4)',
-    jgListos:'¡Listos! Elige doble-6 o doble-9 y dale a Repartir.',
+    jgEsperando:'Esperando a que se sienten más personas…',
+    jgListos:'¡Listo! Elige doble-6 o doble-9 y dale al botón grande de empezar. 👇',
     jgMesaVacia:'La mesa está vacía — el primero en jugar pone la primera ficha.',
     jgTeToca:'¡TE TOCA! Toca una ficha iluminada para jugarla.',
     jgSinJugada:'No tienes jugada 😔 — dale a "Paso".',
@@ -945,6 +947,12 @@ var I18N = {
     jgEmpateDet:'Mismos puntos por ambos lados: nadie anota esta mano.',
     jgPuntosGanados:'Se lleva {n} puntos para el marcador.',
     jgSentarme:'Sentarme a jugar', jgRepartir:'Repartir', jgPasar:'👊 ¡No llevo!',
+    jgEmpezar:'▶ ¡Empezar a jugar!',
+    jgEmpezarSolo:'▶ Empezar: tú y {c} 🤖',
+    jgEmpezarMixto:'▶ Empezar: {p} personas y {c} 🤖',
+    jgEmpezarPersonas:'▶ Empezar: {p} personas',
+    jgSiEmpiezas:'si empiezas ya, la computadora pone {n} 🤖',
+    jgFaltanSentarse:'para jugar sin computadora tienen que sentarse 2 o 4 (hay {n})',
     ladoTitle:'¿Por cuál punta?', otraMano:'Repartir otra mano', verMarcador:'Ver el marcador',
     mesaSec:'Color de la mesa', nombreTitle:'¿Cómo te llamas?', nombrePh:'Tu nombre', nombreOk:'¡Listo!',
     jgLibre:'Puesto libre', jgTu:'tú',
@@ -1045,8 +1053,8 @@ var I18N = {
     salaInviteTxt:'Join my domino room "{n}"! Open the link to jump right in. 🎲',
     salaJugar:'Play dominoes here in the app',
     jgVolver:'Scoreboard', jgSientate:'Tap "Take a seat" to join the table.',
-    jgEsperando:'Waiting for more players… (2 or 4 play)',
-    jgListos:'Ready! Pick double-6 or double-9 and tap Deal.',
+    jgEsperando:'Waiting for more people to sit down…',
+    jgListos:'Ready! Pick double-6 or double-9 and tap the big start button. 👇',
     jgMesaVacia:'The table is empty — the first player lays the first tile.',
     jgTeToca:'YOUR TURN! Tap a highlighted tile to play it.',
     jgSinJugada:'No possible move 😔 — tap "Pass".',
@@ -1056,6 +1064,12 @@ var I18N = {
     jgEmpateDet:'Same pips on both sides: nobody scores this hand.',
     jgPuntosGanados:'Takes {n} points to the scoreboard.',
     jgSentarme:'Take a seat', jgRepartir:'Deal', jgPasar:'👊 I pass',
+    jgEmpezar:'▶ Start playing!',
+    jgEmpezarSolo:'▶ Start: you and {c} 🤖',
+    jgEmpezarMixto:'▶ Start: {p} people and {c} 🤖',
+    jgEmpezarPersonas:'▶ Start: {p} people',
+    jgSiEmpiezas:'start now and the computer adds {n} 🤖',
+    jgFaltanSentarse:'to play without the computer, 2 or 4 must sit down (there are {n})',
     ladoTitle:'Which end?', otraMano:'Deal another hand', verMarcador:'See the scoreboard',
     mesaSec:'Table color', nombreTitle:'What is your name?', nombrePh:'Your name', nombreOk:'Done!',
     jgLibre:'Open seat', jgTu:'you',
@@ -1177,7 +1191,7 @@ function applySettings(){
   $('t-salajugar').textContent = t('salaJugar');
   $('t-jgvolver').textContent = t('jgVolver');
   $('jg-sentarme').textContent = t('jgSentarme');
-  $('jg-repartir').textContent = t('jgRepartir');
+  $('jg-repartir').textContent = t('jgEmpezar');   /* renderJuego le pone el detalle */
   $('jg-pasar').textContent = t('jgPasar');
   $('t-jgcuantos').textContent = t('jgCuantos');
   $('t-jgbots').textContent = t('jgBotsQ');
@@ -2713,10 +2727,12 @@ function botsForzados(){ return humanosSel === 1 || humanosSel === 3; }
 function botsOn(){ return botsSel || botsForzados(); }
 function repartir(){
   if(!SALA) return;
-  /* deben estar sentadas exactamente las personas elegidas */
-  if(humanosSentados() !== humanosSel){
-    $('jg-estado').textContent = t('jgFaltanPersonas')
-      .replace('{n}', humanosSentados()).replace('{e}', humanosSel);
+  /* Se puede empezar cuando el que manda quiera: la computadora pone los
+     que falten. Sin computadora sí hace falta ser 2 o 4 (para las parejas). */
+  var sentadas = humanosSentados();
+  if(sentadas < 1) return;
+  if(!botsOn() && sentadas !== 2 && sentadas !== 4){
+    $('jg-estado').textContent = t('jgFaltanSentarse').replace('{n}', sentadas);
     return;
   }
   var conBots = botsOn();
@@ -3122,9 +3138,22 @@ function renderJuego(){
   var sentado = seat >= 0;
   $('jg-sentarme').classList.toggle('hidden', sentado);
   var preJuego = sentado && (!JUEGO || JUEGO.estado !== 'jugando');
-  var puedeRepartir = preJuego && humanosSentados() === humanosSel;
+  /* ¿Quién jugaría si le doy AHORA MISMO? El botón lo dice claramente y
+     solo se apaga cuando de verdad no se puede armar la mesa. */
+  var personas = humanosSentados();
+  var compusAhora = botsOn() ? Math.max(0, 4 - personas) : 0;
+  var puedeRepartir = preJuego && personas >= 1 &&
+                      (compusAhora > 0 || personas === 2 || personas === 4);
   $('jg-repartir').classList.toggle('hidden', !preJuego);
   $('jg-repartir').disabled = !puedeRepartir;
+  if(preJuego){
+    var etq;
+    if(!puedeRepartir) etq = t('jgEmpezar');
+    else if(compusAhora > 0 && personas === 1) etq = t('jgEmpezarSolo').replace('{c}', compusAhora);
+    else if(compusAhora > 0) etq = t('jgEmpezarMixto').replace('{p}', personas).replace('{c}', compusAhora);
+    else etq = t('jgEmpezarPersonas').replace('{p}', personas);
+    $('jg-repartir').textContent = etq;
+  }
   $('jg-setrow').classList.toggle('hidden', !preJuego);
   $('t-jgcuantos').classList.toggle('hidden', !preJuego);
   $('jg-humanosrow').classList.toggle('hidden', !preJuego);
@@ -3143,10 +3172,11 @@ function renderJuego(){
       b.disabled = forz && !esSi;
       b.style.opacity = (forz && !esSi) ? '.4' : '';
     });
-    var compus = conBots ? 4 - humanosSel : 0;
+    var compus = compusAhora;
     $('jg-humanos-nota').textContent =
-      t('jgSentadas').replace('{n}', humanosSentados()).replace('{e}', humanosSel) +
-      (compus > 0 ? ' · ' + t('jgCompus').replace('{n}', compus) : '') +
+      t('jgSentadas').replace('{n}', personas).replace('{e}', humanosSel) +
+      (compus > 0 ? ' · ' + t('jgSiEmpiezas').replace('{n}', compus)
+                  : (!puedeRepartir ? ' · ' + t('jgFaltanSentarse').replace('{n}', personas) : '')) +
       (forz ? ' · ' + t('jgBotsForzada').replace('{n}', humanosSel) : '');
   }
   var miTurno = JUEGO && JUEGO.estado === 'jugando' && JUEGO.turno === seat;
@@ -3154,7 +3184,7 @@ function renderJuego(){
 
   if(!JUEGO || !JUEGO.estado || JUEGO.estado === 'fin'){
     estadoTxt = sentado
-      ? (asientosOcupados() === 2 || asientosOcupados() === 4 ? t('jgListos') : t('jgEsperando'))
+      ? (puedeRepartir ? t('jgListos') : t('jgEsperando'))
       : t('jgSientate');
   }else if(JUEGO.estado === 'jugando'){
     if(sentado){
