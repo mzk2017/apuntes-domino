@@ -156,11 +156,17 @@
 
   /* ---------- juego de dominó en la app ---------- */
   .jg-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
-  .jg-players{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-  .jg-pl{padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.25);border:1.5px solid var(--line);font-size:.82rem;font-weight:700;color:var(--bone-dim)}
-  .jg-pl.rojo{border-color:var(--red)} .jg-pl.azul{border-color:var(--blue)}
-  .jg-pl.turno{background:var(--gold);color:var(--ink);border-color:var(--gold)}
-  .jg-mesa{flex:1;min-height:120px;background:rgba(0,0,0,.28);border:1.5px solid var(--line);border-radius:16px;padding:12px;overflow:auto;display:flex;align-items:center}
+  /* la mesa con los 4 sentados alrededor (tú siempre abajo) */
+  .jg-arena{flex:1;display:flex;flex-direction:column;gap:6px;min-height:0}
+  .jg-fila{display:flex;align-items:stretch;gap:6px;flex:1;min-height:0}
+  .jg-seat{align-self:center;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.25);border:2px solid var(--line);font-size:.82rem;font-weight:700;color:var(--bone-dim);white-space:nowrap;margin:0 auto}
+  .jg-seat.rojo{border-color:var(--red)} .jg-seat.azul{border-color:var(--blue)}
+  .jg-seat.turno{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+  .jg-seat.libre{opacity:.45;border-style:dashed}
+  .jg-seat.lado{writing-mode:vertical-rl;padding:12px 6px;margin:auto 0;max-height:100%;overflow:hidden;text-overflow:ellipsis}
+  .jg-seat.izq{transform:rotate(180deg)}
+  .jg-seat.oculto{display:none}
+  .jg-mesa{flex:1;min-height:120px;min-width:0;background:rgba(0,0,0,.28);border:1.5px solid var(--line);border-radius:16px;padding:12px;overflow:auto;display:flex;align-items:center}
   .jg-cadena{display:flex;align-items:center;gap:2px;margin:auto;padding:6px}
   .jg-estado{text-align:center;font-weight:700;margin:10px 0;min-height:1.4em}
   .jg-estado b{color:var(--gold)}
@@ -417,8 +423,15 @@
     <div class="meta-chip" id="jg-sala-chip">👥 —</div>
     <button class="icon-btn" id="jg-full" aria-label="Pantalla completa">⛶</button>
   </div>
-  <div class="jg-players" id="jg-players"></div>
-  <div class="jg-mesa"><div class="jg-cadena" id="jg-cadena"></div></div>
+  <div class="jg-arena">
+    <div class="jg-seat" id="jg-seat-top">—</div>
+    <div class="jg-fila">
+      <div class="jg-seat lado izq" id="jg-seat-left">—</div>
+      <div class="jg-mesa"><div class="jg-cadena" id="jg-cadena"></div></div>
+      <div class="jg-seat lado der" id="jg-seat-right">—</div>
+    </div>
+    <div class="jg-seat" id="jg-seat-bottom">—</div>
+  </div>
   <p class="jg-estado" id="jg-estado">—</p>
   <div class="jg-mano-wrap">
     <div class="jg-mano" id="jg-mano"></div>
@@ -721,6 +734,7 @@ var I18N = {
     jgSentarme:'Sentarme a jugar', jgRepartir:'Repartir', jgPasar:'Paso 😔',
     ladoTitle:'¿Por cuál punta?', otraMano:'Repartir otra mano', verMarcador:'Ver el marcador',
     mesaSec:'Color de la mesa', nombreTitle:'¿Cómo te llamas?', nombrePh:'Tu nombre', nombreOk:'¡Listo!',
+    jgLibre:'Puesto libre', jgTu:'tú',
     gritoSec:'El grito de ¡POLLONA!',
     gritoNone:'Sin grito grabado. ¡Graba tu POLLONAAA con el micrófono para que suene junto a las gallinas! 🎤',
     gritoHave:'🎤 Grito grabado ✓ — así sonará cada pollona.',
@@ -807,6 +821,7 @@ var I18N = {
     jgSentarme:'Take a seat', jgRepartir:'Deal', jgPasar:'Pass 😔',
     ladoTitle:'Which end?', otraMano:'Deal another hand', verMarcador:'See the scoreboard',
     mesaSec:'Table color', nombreTitle:'What is your name?', nombrePh:'Your name', nombreOk:'Done!',
+    jgLibre:'Open seat', jgTu:'you',
     gritoSec:'The ¡POLLONA! shout',
     gritoNone:'No shout recorded. Record your POLLONAAA with the mic so it plays along with the hens! 🎤',
     gritoHave:'🎤 Shout recorded ✓ — every pollona will sound like this.',
@@ -1949,24 +1964,34 @@ function mostrarFinMano(){
 function renderJuego(){
   if($('scr-juego').classList.contains('hidden')) return;
   var seat = miAsiento();
-  var pls = $('jg-players'); pls.innerHTML = '';
   var mesaEl = $('jg-cadena'); mesaEl.innerHTML = '';
   var manoEl = $('jg-mano'); manoEl.innerHTML = '';
   var nJug = (JUEGO && JUEGO.nJug) || asientosOcupados();
 
-  if(JUEGO && JUEGO.asientos){
-    for(var k = 0; k < 4; k++){
-      var a = JUEGO.asientos[k];
-      if(!a) continue;
-      var chip = document.createElement('span');
-      chip.className = 'jg-pl ' + (equipoDe(k, nJug || 2) === 0 ? 'rojo' : 'azul') +
-                       (JUEGO.estado === 'jugando' && JUEGO.turno === k ? ' turno' : '');
-      var nf = (JUEGO.manos && JUEGO.manos[a.uid]) ? JUEGO.manos[a.uid].length : 0;
-      chip.textContent = a.nombre + (a.uid === fbUID ? ' (tú)' : '') +
-                         (JUEGO.estado === 'jugando' ? ' · ' + nf + '🁢' : '');
-      pls.appendChild(chip);
+  /* los 4 alrededor de la mesa: TÚ abajo, tu pareja al frente,
+     el que juega después de ti a la derecha */
+  var ref = seat >= 0 ? seat : 0;
+  var dosJug = nJug === 2 && !(JUEGO && JUEGO.asientos && (JUEGO.asientos[2] || JUEGO.asientos[3]));
+  var posiciones = dosJug
+    ? { bottom: ref, top: (ref + 1) % 2, left: -1, right: -1 }
+    : { bottom: ref, right: (ref + 1) % 4, top: (ref + 2) % 4, left: (ref + 3) % 4 };
+  ['top','left','right','bottom'].forEach(function(pos){
+    var el = $('jg-seat-' + pos);
+    var si = posiciones[pos];
+    el.className = 'jg-seat' + (pos === 'left' ? ' lado izq' : pos === 'right' ? ' lado der' : '');
+    if(si < 0){ el.classList.add('oculto'); return; }
+    var a = JUEGO && JUEGO.asientos && JUEGO.asientos[si];
+    if(!a){
+      if(JUEGO && JUEGO.estado === 'jugando'){ el.classList.add('oculto'); }
+      else { el.classList.add('libre'); el.textContent = '🪑 ' + t('jgLibre'); }
+      return;
     }
-  }
+    el.classList.add(equipoDe(si, nJug || 2) === 0 ? 'rojo' : 'azul');
+    if(JUEGO.estado === 'jugando' && JUEGO.turno === si) el.classList.add('turno');
+    var nf = (JUEGO.manos && JUEGO.manos[a.uid]) ? JUEGO.manos[a.uid].length : 0;
+    el.textContent = a.nombre + (a.uid === fbUID ? ' (' + t('jgTu') + ')' : '') +
+                     (JUEGO.estado === 'jugando' ? ' · ' + nf + '🁢' : '');
+  });
 
   var mesa = (JUEGO && JUEGO.mesa) || [];
   mesa.forEach(function(f){
