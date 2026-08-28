@@ -175,6 +175,8 @@
   .jg-cadena.mini .fch .pp{width:4px;height:4px}
   .jg-cadena.mini .fch{border-width:1.5px;border-radius:4px}
   .jg-estado{text-align:center;font-weight:700;margin:6px 0;min-height:1.3em;font-size:.95rem}
+  .jg-estado.mio{color:var(--gold);animation:pulsoTurno .7s ease-in-out infinite alternate}
+  @keyframes pulsoTurno{from{transform:scale(1)}to{transform:scale(1.06)}}
   .jg-estado b{color:var(--gold)}
   .jg-mano-wrap{background:rgba(0,0,0,.22);border:1.5px solid var(--line);border-radius:16px;padding:10px}
   .jg-mano{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
@@ -494,14 +496,16 @@
   </div>
 </div>
 
-<!-- fin de la mano -->
-<div class="overlay hidden" id="ov-finmano">
-  <div class="sheet" style="text-align:center">
-    <p class="sheet-title"><b id="finmano-titulo">—</b></p>
-    <p class="count-hint" id="finmano-detalle">—</p>
-    <div class="menu-list" style="margin-top:12px">
-      <button class="menu-btn" id="finmano-otra" style="text-align:center">🁢 <span id="t-otramano">Repartir otra mano</span></button>
-      <button class="menu-btn" id="finmano-marcador" style="text-align:center">📊 <span id="t-vermarcador">Ver el marcador</span></button>
+<!-- fin de la mano: anuncio grande en el centro de la mesa -->
+<div class="fx-overlay hidden" id="ov-finmano">
+  <div class="fx-card">
+    <div class="fx-emoji" id="finmano-emoji">🏆</div>
+    <div class="fx-word" id="finmano-titulo">—</div>
+    <div class="fx-name" id="finmano-nombre">—</div>
+    <p class="fx-sub" id="finmano-detalle">—</p>
+    <div class="fx-actions">
+      <button class="fx-btn" id="finmano-otra">🁢 <span id="t-otramano">Repartir otra mano</span></button>
+      <button class="fx-btn ghost" id="finmano-marcador">📊 <span id="t-vermarcador">Ver el marcador</span></button>
     </div>
   </div>
 </div>
@@ -1805,6 +1809,11 @@ function abrirJuego(){
       normalizaJuego();
       renderJuego();
       maybeBot();   /* si le toca a la computadora, este teléfono la mueve */
+      /* ¡me toca a mí!: sonidito y vibración */
+      if(JUEGO && JUEGO.estado === 'jugando' && JUEGO.turno === miAsiento() &&
+         (!prev || prev.estado !== 'jugando' || prev.turno !== JUEGO.turno)){
+        dingTeToca();
+      }
       /* fin de mano recién llegado */
       if(JUEGO && JUEGO.estado === 'fin' && (!prev || prev.estado !== 'fin')) mostrarFinMano();
     });
@@ -2018,16 +2027,46 @@ function nombreEquipo(eq){
   }
   return nombres.join(' y ') || ('Equipo ' + (eq + 1));
 }
+/* sonidos cortos hechos en el momento (sin archivos) */
+var beepCtx = null;
+function tonos(notas, vol){
+  try{
+    if(!beepCtx) beepCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(beepCtx.state === 'suspended') beepCtx.resume();
+    var t0 = beepCtx.currentTime;
+    notas.forEach(function(p){
+      var o = beepCtx.createOscillator(), g = beepCtx.createGain();
+      o.type = 'sine'; o.frequency.value = p[0];
+      o.connect(g); g.connect(beepCtx.destination);
+      g.gain.setValueAtTime(0.0001, t0 + p[1]);
+      g.gain.exponentialRampToValueAtTime(vol || 0.25, t0 + p[1] + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + p[1] + 0.35);
+      o.start(t0 + p[1]); o.stop(t0 + p[1] + 0.4);
+    });
+  }catch(e){}
+}
+function dingTeToca(){
+  tonos([[880, 0], [1174.7, 0.14]]);
+  try{ if(navigator.vibrate) navigator.vibrate([120, 60, 120]); }catch(e){}
+}
+function dingFinMano(){ tonos([[659.3, 0], [784, 0.13], [1046.5, 0.26]], 0.3); }
+
 function mostrarFinMano(){
   var r = JUEGO && JUEGO.resultado;
   if(!r) return;
+  if(state.phase === 'over') return;   /* la pollona/ganador del juego manda */
   if(r.ganadorEq < 0){
+    $('finmano-emoji').textContent = '🤝';
     $('finmano-titulo').textContent = t('jgEmpate');
+    $('finmano-nombre').textContent = '';
     $('finmano-detalle').textContent = t('jgEmpateDet');
   }else{
-    $('finmano-titulo').textContent = (r.tipo === 'domino' ? '🁢 ¡DOMINÓ! ' : '🔒 ' + t('jgTranca') + ' — ') + r.nombre;
+    $('finmano-emoji').textContent = r.tipo === 'domino' ? '🏆' : '🔒';
+    $('finmano-titulo').textContent = r.tipo === 'domino' ? '¡DOMINÓ!' : t('jgTranca');
+    $('finmano-nombre').textContent = r.nombre;
     $('finmano-detalle').textContent = tf('jgPuntosGanados', r.puntos);
   }
+  dingFinMano();
   $('ov-finmano').classList.remove('hidden');
 }
 
@@ -2140,6 +2179,7 @@ function renderJuego(){
     }
   }
   $('jg-estado').innerHTML = estadoTxt;
+  $('jg-estado').classList.toggle('mio', !!miTurno);
 }
 
 /* --- la computadora juega (la ejecuta el teléfono que repartió) --- */
