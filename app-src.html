@@ -509,6 +509,14 @@
     <div class="fx-word" id="finmano-titulo">—</div>
     <div class="fx-name" id="finmano-nombre">—</div>
     <p class="fx-sub" id="finmano-detalle">—</p>
+    <p class="set-section" id="t-fmcuantos" style="margin:16px 0 6px">¿Cuántas personas juegan la próxima?</p>
+    <div class="seg-row" id="fm-humanosrow">
+      <button class="seg-btn" data-fmhum="1">1</button>
+      <button class="seg-btn" data-fmhum="2">2</button>
+      <button class="seg-btn" data-fmhum="3">3</button>
+      <button class="seg-btn sel" data-fmhum="4">4</button>
+    </div>
+    <p class="set-note" id="fm-nota" style="text-align:center;margin-top:6px"></p>
     <div class="fx-actions">
       <button class="fx-btn" id="finmano-otra">🁢 <span id="t-otramano">Repartir otra mano</span></button>
       <button class="fx-btn ghost" id="finmano-marcador">📊 <span id="t-vermarcador">Ver el marcador</span></button>
@@ -770,7 +778,9 @@ var I18N = {
     ladoTitle:'¿Por cuál punta?', otraMano:'Repartir otra mano', verMarcador:'Ver el marcador',
     mesaSec:'Color de la mesa', nombreTitle:'¿Cómo te llamas?', nombrePh:'Tu nombre', nombreOk:'¡Listo!',
     jgLibre:'Puesto libre', jgTu:'tú',
+    equipo:'Equipo', jugador:'Jugador', compu:'🤖 Compu', y:' y ', domino:'¡DOMINÓ!',
     jgCuantos:'¿Cuántas personas van a jugar?',
+    fmCuantos:'¿Cuántas personas juegan la próxima?',
     jgSentadas:'Sentadas: {n} de {e}', jgCompus:'la computadora pone {n} 🤖',
     jgFaltanPersonas:'Hay {n} personas sentadas y elegiste {e} — que se sienten todas (o cambia el número).',
     gritoSec:'El grito de ¡POLLONA!',
@@ -860,7 +870,9 @@ var I18N = {
     ladoTitle:'Which end?', otraMano:'Deal another hand', verMarcador:'See the scoreboard',
     mesaSec:'Table color', nombreTitle:'What is your name?', nombrePh:'Your name', nombreOk:'Done!',
     jgLibre:'Open seat', jgTu:'you',
+    equipo:'Team', jugador:'Player', compu:'🤖 CPU', y:' & ', domino:'DOMINO!',
     jgCuantos:'How many people will play?',
+    fmCuantos:'How many people play the next one?',
     jgSentadas:'Seated: {n} of {e}', jgCompus:'the computer adds {n} 🤖',
     jgFaltanPersonas:'{n} people are seated but you chose {e} — everyone sit down (or change the number).',
     gritoSec:'The ¡POLLONA! shout',
@@ -1073,8 +1085,8 @@ $('goal-custom').addEventListener('input', function(){
 });
 
 $('btn-start').addEventListener('click', function(){
-  var n1 = $('name1').value.trim() || 'Equipo 1';
-  var n2 = $('name2').value.trim() || 'Equipo 2';
+  var n1 = $('name1').value.trim() || (t('equipo') + ' 1');
+  var n2 = $('name2').value.trim() || (t('equipo') + ' 2');
   var custom = parseInt($('goal-custom').value, 10);
   var goal = (custom > 9) ? custom : selectedGoal;
   state = { phase:'game', goal:goal, players:[ {name:n1, scores:[]}, {name:n2, scores:[]} ] };
@@ -1956,7 +1968,7 @@ function reclamarAsiento(nombre){
   intenta(0);
 }
 $('nombre-ok').addEventListener('click', function(){
-  var n = ($('mi-nombre').value || '').trim() || 'Jugador';
+  var n = ($('mi-nombre').value || '').trim() || t('jugador');
   $('ov-nombre').classList.add('hidden');
   reclamarAsiento(n);
 });
@@ -1988,7 +2000,7 @@ function repartir(){
   /* la computadora completa la mesa hasta 4 */
   for(var i = 0; i < 4; i++){
     if(!asientosFinal[i]){
-      asientosFinal[i] = { uid: 'bot-' + i, nombre: '🤖 Compu ' + (i + 1), bot: true };
+      asientosFinal[i] = { uid: 'bot-' + i, nombre: t('compu') + ' ' + (i + 1), bot: true };
     }
   }
   var n = 4;
@@ -2017,8 +2029,8 @@ function repartir(){
     var nm = JUEGO.asientos[s].nombre;
     (equipoDe(s, n) === 0 ? eq0 : eq1).push(nm);
   });
-  state.players[0].name = eq0.join(' y ');
-  state.players[1].name = eq1.join(' y ');
+  state.players[0].name = eq0.join(t('y'));
+  state.players[1].name = eq1.join(t('y'));
   if(state.phase === 'setup') state.phase = 'game';
   save();
 }
@@ -2119,7 +2131,7 @@ function nombreEquipo(eq){
       if(JUEGO.asientos[s] && equipoDe(s, nJug) === eq) nombres.push(JUEGO.asientos[s].nombre);
     }
   }
-  return nombres.join(' y ') || ('Equipo ' + (eq + 1));
+  return nombres.join(t('y')) || (t('equipo') + ' ' + (eq + 1));
 }
 /* sonidos cortos hechos en el momento (sin archivos) */
 var beepCtx = null;
@@ -2172,13 +2184,36 @@ function mostrarFinMano(){
     $('finmano-detalle').textContent = t('jgEmpateDet');
   }else{
     $('finmano-emoji').textContent = r.tipo === 'domino' ? '🏆' : '🔒';
-    $('finmano-titulo').textContent = r.tipo === 'domino' ? '¡DOMINÓ!' : t('jgTranca');
+    $('finmano-titulo').textContent = r.tipo === 'domino' ? t('domino') : t('jgTranca');
     $('finmano-nombre').textContent = r.nombre;
     $('finmano-detalle').textContent = tf('jgPuntosGanados', r.puntos);
   }
+  /* elegir con cuántas personas se juega la próxima mano */
+  refrescarFmHumanos();
   dingFinMano();
   $('ov-finmano').classList.remove('hidden');
 }
+function refrescarFmHumanos(){
+  document.querySelectorAll('[data-fmhum]').forEach(function(b){
+    b.classList.toggle('sel', parseInt(b.dataset.fmhum, 10) === humanosSel);
+  });
+  var compus = 4 - humanosSel;
+  var sentadas = humanosSentados();
+  $('t-fmcuantos').textContent = t('fmCuantos');
+  $('fm-nota').textContent = t('jgSentadas').replace('{n}', sentadas).replace('{e}', humanosSel) +
+    (compus > 0 ? ' · ' + t('jgCompus').replace('{n}', compus) : '');
+  var ok = sentadas === humanosSel;
+  $('finmano-otra').disabled = !ok;
+  $('finmano-otra').style.opacity = ok ? '' : '.45';
+}
+document.querySelectorAll('[data-fmhum]').forEach(function(b){
+  b.addEventListener('click', function(){
+    humanosSel = parseInt(b.dataset.fmhum, 10);
+    try{ localStorage.setItem('apuntes-domino-humanos', String(humanosSel)); }catch(e){}
+    refrescarFmHumanos();
+    renderJuego();
+  });
+});
 
 /* --- render del juego --- */
 function renderJuego(){
