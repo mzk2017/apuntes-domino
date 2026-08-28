@@ -163,12 +163,15 @@
   .jg-seat.rojo{border-color:var(--red)} .jg-seat.azul{border-color:var(--blue)}
   .jg-seat.turno{background:var(--gold);color:var(--ink);border-color:var(--gold)}
   .jg-seat.libre{opacity:.45;border-style:dashed}
-  .jg-fila{position:relative}
-  .jg-seat.lado{position:absolute;top:8px;z-index:3;font-size:.72rem;padding:5px 9px;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(0,0,0,.55);margin:0}
-  .jg-seat.izq{left:4px}
-  .jg-seat.der{right:4px}
+  /* los de los lados: columnitas a la izquierda y derecha de la mesa */
+  /* de lado: chip vertical estrecho con el texto girado (se lee de un vistazo) */
+  .jg-seat.lado{flex:0 0 26px;align-self:center;font-size:.66rem;line-height:1;padding:10px 3px;
+                writing-mode:vertical-rl;text-align:center;border-radius:10px;margin:0;
+                white-space:nowrap;max-height:88%;overflow:hidden}
+  .jg-seat.izq{transform:rotate(180deg)}
+  .jg-seat.lado .fb{width:6px;height:11px;margin:2px 0}
   .jg-seat.oculto{display:none}
-  .jg-mesa{flex:1;min-height:120px;min-width:0;background:rgba(0,0,0,.28);border:1.5px solid var(--line);border-radius:16px;padding:8px;overflow:auto;display:flex;align-items:center}
+  .jg-mesa{flex:1;min-height:120px;min-width:0;background:rgba(0,0,0,.28);border:1.5px solid var(--line);border-radius:16px;padding:8px;overflow:auto;display:flex;align-items:center;color:#F5EFE3}
   .jg-cadena{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:2px;row-gap:8px;margin:auto;padding:4px}
   .jg-cadena.serp{display:block;position:relative;flex:none;padding:0}
   .jg-cadena.serp .fch{position:absolute}
@@ -1765,7 +1768,7 @@ function dibujaCadena(fichas){
     cont.className = 'jg-cadena';
     cont.style.cssText = '';
     var vacio = document.createElement('span');
-    vacio.style.cssText = 'color:var(--bone-dim);font-size:.9rem';
+    vacio.style.cssText = 'color:currentColor;opacity:.75;font-size:.9rem;text-align:center;width:100%';
     vacio.textContent = t('jgMesaVacia');
     cont.appendChild(vacio);
     return;
@@ -1775,20 +1778,21 @@ function dibujaCadena(fichas){
   var tiers = [[64, 32, ''], [46, 23, 'peq'], [34, 17, 'mini'], [26, 13, 'mini']];
 
   function calcular(L, S){
-    /* filas pegaditas: cada fila nueva arranca justo donde termina la
-       ficha vertical de la vuelta — serpiente continua, sin huecos */
-    var resp = 6;                    /* respiro mínimo entre filas */
-    var pitch = (L - S) + resp;
-    var sobra = (L - S) / 2;         /* lo que sobresale un doble */
+    /* Fichas pegaditas en la fila; las filas separadas lo justo para que
+       un doble (que sobresale) NO se monte con la fila de abajo. */
+    var sep = 5;
+    var pitch = L / 2 + S / 2 + sep;   /* distancia entre filas */
+    var sobra = (L - S) / 2;           /* lo que sobresale un doble */
     var pos = [], row = 0, dx = 1, x = 0;
     for(var i = 0; i < fichas.length; i++){
       var f = fichas[i];
       var doble = f.a === f.b;
       var wT = doble ? S : L;
       var cabe = dx === 1 ? (x + wT <= maxW) : (x - wT >= 0);
-      var rowTop = sobra + row * pitch;
+      var rowTop = sobra + row * pitch;          /* borde superior de la fila */
+      var rowMid = rowTop + S / 2;               /* línea central de la fila */
       if(!cabe && pos.length){
-        /* la vuelta: ficha vertical en la orilla que une las dos filas */
+        /* la vuelta: ficha vertical en la orilla que enlaza las dos filas */
         var tx = dx === 1 ? Math.min(x, maxW - S) : Math.max(x - S, 0);
         pos.push({x: tx, y: rowTop, w: S, h: pitch + S, vert: true, flip: false, f: f});
         row++; dx = -dx;
@@ -1796,7 +1800,8 @@ function dibujaCadena(fichas){
         continue;
       }
       if(doble){
-        pos.push({x: dx === 1 ? x : x - S, y: rowTop - sobra + resp / 2, w: S, h: L, vert: true, flip: false, f: f});
+        /* atravesado y centrado en la línea de la fila */
+        pos.push({x: dx === 1 ? x : x - S, y: rowMid - L / 2, w: S, h: L, vert: true, flip: false, f: f});
         x += dx * S;
       }else{
         pos.push({x: dx === 1 ? x : x - L, y: rowTop, w: L, h: S, vert: false, flip: dx === -1, f: f});
@@ -2221,6 +2226,15 @@ function renderJuego(){
     if(JUEGO.estado === 'jugando'){
       if(a.uid === fbUID){
         el.appendChild(document.createTextNode(' · ' + nf + '🁢'));
+      }else if(pos === 'left' || pos === 'right'){
+        /* de lado: nombre + fichitas en una sola línea girada */
+        el.textContent = a.nombre.replace('🤖 ', '🤖') + ' ';
+        for(var fl = 0; fl < Math.min(nf, 8); fl++){
+          var miniL = document.createElement('i');
+          miniL.className = 'fb';
+          el.appendChild(miniL);
+        }
+        el.appendChild(document.createTextNode(' ' + nf));
       }else{
         /* las fichitas boca abajo que le quedan */
         el.appendChild(document.createTextNode(' '));
