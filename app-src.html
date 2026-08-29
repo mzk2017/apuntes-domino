@@ -428,16 +428,24 @@
 
 <!-- ============ AJUSTES (HOME) ============ -->
 <div class="screen hidden" id="scr-settings">
-  <div class="hist-head">
+  <div class="hist-head" id="settings-head">
     <h2 class="hist-title">🏠 <span id="t-settings">Inicio</span></h2>
   </div>
-  <div style="flex:1;overflow-y:auto;min-height:0">
-    <button class="big-btn" id="home-play" style="margin:4px 0 10px">🎲 Jugar</button>
-    <button class="ghost-link hidden" id="home-new" style="margin:0 0 10px;width:100%">✨ Partida nueva</button>
-    <button class="ghost-link" id="btn-salas" style="margin:0 0 10px;width:100%;border-color:var(--blue);color:var(--blue)">👥 Salas con amigos</button>
-    <button class="ghost-link" id="btn-history-home" style="margin:0;width:100%">📜 Historial de partidas</button>
-    <button class="ghost-link hidden" id="btn-install" style="margin:10px 0 0;width:100%;border-color:var(--gold);color:var(--gold)">📲 Instalar la app en este teléfono</button>
+  <div id="settings-scroll" style="flex:1;overflow-y:auto;min-height:0">
+  <!-- el Home limpio: solo los botones principales -->
+  <div id="home-menu">
+    <button class="big-btn" id="home-play" style="margin:4px 0 12px">🎲 Jugar</button>
+    <button class="ghost-link hidden" id="home-new" style="margin:0 0 12px;width:100%;padding:16px 0">✨ Partida nueva</button>
+    <button class="ghost-link" id="btn-salas" style="margin:0 0 12px;width:100%;padding:16px 0;border-color:var(--blue);color:var(--blue)">👥 Salas con amigos</button>
+    <button class="ghost-link" id="btn-history-home" style="margin:0 0 12px;width:100%;padding:16px 0">📜 Historial de partidas</button>
+    <button class="ghost-link" id="home-ajustes" style="margin:0;width:100%;padding:16px 0">⚙️ Ajustes</button>
+    <button class="ghost-link hidden" id="btn-install" style="margin:12px 0 0;width:100%;border-color:var(--gold);color:var(--gold)">📲 Instalar la app en este teléfono</button>
     <p class="set-note hidden" id="install-steps" style="line-height:1.5"></p>
+  </div>
+
+  <!-- la pantalla de Ajustes: todo lo demás -->
+  <div class="hidden" id="ajustes-panel">
+    <button class="hist-back" id="ajustes-back" style="margin-bottom:4px">‹ <span id="t-ajustesback">Inicio</span></button>
 
     <p class="set-section" id="t-cuenta">Mi cuenta</p>
     <button class="ghost-link" id="btn-google" style="margin:0;width:100%;display:flex;align-items:center;gap:10px;justify-content:center;border-color:var(--gold);color:var(--gold)">
@@ -518,6 +526,7 @@
       <p class="set-note" id="t-qrnote">…o que escaneen este código con la cámara del teléfono</p>
     </div>
     <p class="set-note" id="t-installnote" style="line-height:1.5">📱 Para el iconito 🎲 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".</p>
+  </div><!-- /ajustes-panel -->
     <p class="set-note" id="app-ver" style="text-align:center;opacity:.55;margin-top:14px">Versión del %%BUILD%%</p>
     <p class="set-note" style="text-align:center;margin-top:22px;opacity:.7">© 2026 Domino Cubano Counter · Todos los derechos reservados<br>Prohibida su venta o redistribución</p>
   </div>
@@ -994,6 +1003,7 @@ var I18N = {
     jgCuantos:'¿Cuántas personas van a jugar?',
     fmCuantos:'¿Cuántas personas juegan la próxima?',
     jgSentadas:'Sentadas: {n} de {e}', jgCompus:'la computadora pone {n} 🤖',
+    ajustesTitulo:'Ajustes', homeAjustes:'⚙️ Ajustes',
     cuentaTitulo:'Mi cuenta', cuentaEntrar:'Entrar con mi cuenta de Google',
     cuentaNota:'Sin cuenta también se juega: entras como invitado igual que siempre. Con cuenta, tu nombre, tu dibujito y tu récord te siguen aunque cambies de teléfono.',
     cuentaRecord:'{g} ganadas · {p} perdidas · {x} pollonas',
@@ -1112,6 +1122,7 @@ var I18N = {
     jgCuantos:'How many people will play?',
     fmCuantos:'How many people play the next one?',
     jgSentadas:'Seated: {n} of {e}', jgCompus:'the computer adds {n} 🤖',
+    ajustesTitulo:'Settings', homeAjustes:'⚙️ Settings',
     cuentaTitulo:'My account', cuentaEntrar:'Sign in with my Google account',
     cuentaNota:'You can play without an account, as a guest, just like before. With an account your name, badge and record follow you even if you change phones.',
     cuentaRecord:'{g} won · {p} lost · {x} shutouts',
@@ -1279,6 +1290,8 @@ function applySettings(){
   document.querySelector('.count-q').textContent = t('whoFor');
   $('count-cancel').textContent = t('cancel');
   $('t-settings').textContent = t('home');
+  $('home-ajustes').textContent = t('homeAjustes');
+  $('t-ajustesback').textContent = t('home');
   $('t-lang').textContent = t('langSec');
   $('t-theme').textContent = t('themeSec');
   $('t-dark').textContent = t('dark');
@@ -4408,8 +4421,20 @@ function showSettings(){
   refreshInstallUI();
   $('home-play').textContent = state.phase === 'game' ? t('continueGame') : t('playNow');
   $('home-new').classList.toggle('hidden', state.phase !== 'game');
+  mostrarAjustes(false);   /* siempre se llega al Home limpio */
   $('scr-settings').classList.remove('hidden');
 }
+/* el Home enseña solo los botones; los Ajustes viven en su propia vista */
+function mostrarAjustes(ver){
+  $('home-menu').classList.toggle('hidden', ver);
+  $('ajustes-panel').classList.toggle('hidden', !ver);
+  $('t-settings').textContent = ver ? t('ajustesTitulo') : t('home');
+  $('settings-head').querySelector('.hist-title').firstChild.textContent = ver ? '⚙️ ' : '🏠 ';
+  var sc = $('settings-scroll');
+  if(sc) sc.scrollTop = 0;
+}
+$('home-ajustes').addEventListener('click', function(){ mostrarAjustes(true); });
+$('ajustes-back').addEventListener('click', function(){ mostrarAjustes(false); });
 $('btn-home').addEventListener('click', showSettings);
 $('btn-settings-setup').addEventListener('click', showSettings);
 $('home-play').addEventListener('click', function(){
