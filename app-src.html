@@ -400,22 +400,26 @@
   }
 </style>
 
-<!-- ============ SETUP ============ -->
+<!-- ============ ANOTACIONES: solo las dos listas y nada más ============ -->
 <div class="screen" id="scr-setup">
-  <div class="logo" aria-hidden="true">
-    <div class="tile"><div class="half"><span class="pip p1"></span><span class="pip p2"></span><span class="pip p3"></span><span class="pip p4"></span><span class="pip p5"></span></div><div class="half"><span class="pip p1"></span><span class="pip p5"></span></div></div>
-    <div class="tile"><div class="half"><span class="pip p3"></span></div><div class="half"><span class="pip p1"></span><span class="pip p2"></span><span class="pip p4"></span><span class="pip p5"></span></div></div>
+  <div class="hist-head">
+    <button class="hist-back" id="setup-back">‹ <span id="t-setupback">Inicio</span></button>
+    <h2 class="hist-title" id="t-anotstitle">📝 Anotaciones de dominó</h2>
   </div>
-  <h1 class="title">Domino Cubano Counter</h1>
-  <p class="subtitle">La libreta de puntos para tu mesa</p>
 
   <div class="field">
-    <label for="name1"><span class="swatch red"></span>Jugador / Equipo 1</label>
-    <input class="name-input team-red" id="name1" placeholder="Ej: Los Tigres" maxlength="16" autocomplete="off">
+    <label for="name1a"><span class="swatch red"></span><span id="l-eq1">Equipo 1</span></label>
+    <div style="display:flex;gap:8px">
+      <input class="name-input team-red" id="name1a" placeholder="Persona 1" maxlength="14" autocomplete="off" style="flex:1">
+      <input class="name-input team-red" id="name1b" placeholder="Persona 2" maxlength="14" autocomplete="off" style="flex:1">
+    </div>
   </div>
   <div class="field">
-    <label for="name2"><span class="swatch blue"></span>Jugador / Equipo 2</label>
-    <input class="name-input team-blue" id="name2" placeholder="Ej: Los Leones" maxlength="16" autocomplete="off">
+    <label for="name2a"><span class="swatch blue"></span><span id="l-eq2">Equipo 2</span></label>
+    <div style="display:flex;gap:8px">
+      <input class="name-input team-blue" id="name2a" placeholder="Persona 1" maxlength="14" autocomplete="off" style="flex:1">
+      <input class="name-input team-blue" id="name2b" placeholder="Persona 2" maxlength="14" autocomplete="off" style="flex:1">
+    </div>
   </div>
   <div class="field">
     <label id="goal-label">Jugamos a…</label>
@@ -428,8 +432,6 @@
   </div>
 
   <button class="big-btn" id="btn-start">¡A jugar!</button>
-  <button class="ghost-link" id="btn-history-setup">📜 Historial de partidas</button>
-  <button class="ghost-link" id="btn-settings-setup">🏠 Ajustes</button>
 </div>
 
 <!-- ============ AJUSTES (HOME) ============ -->
@@ -948,6 +950,7 @@ var I18N = {
   es: {
     subtitle:'La libreta de puntos para tu mesa',
     team1:'Jugador / Equipo 1', team2:'Jugador / Equipo 2',
+    persona1:'Persona 1', persona2:'Persona 2',
     ph1:'Ej: Los Tigres', ph2:'Ej: Los Leones',
     playTo:'Jugamos a…', otherGoal:'Otra meta (ej: 250)',
     play:'¡A jugar!', historyBtn:'📜 Historia de juegos', settingsBtn:'🏠 Inicio',
@@ -1067,6 +1070,7 @@ var I18N = {
   en: {
     subtitle:'The score pad for your domino table',
     team1:'Player / Team 1', team2:'Player / Team 2',
+    persona1:'Person 1', persona2:'Person 2',
     ph1:'e.g. The Tigers', ph2:'e.g. The Lions',
     playTo:'Playing to…', otherGoal:'Other goal (e.g. 250)',
     play:'Let’s play!', historyBtn:'📜 Game history', settingsBtn:'🏠 Home',
@@ -1208,14 +1212,16 @@ function applySettings(){
   }
   /* textos */
   document.querySelector('.subtitle').textContent = t('subtitle');
-  document.querySelector('label[for="name1"]').innerHTML = '<span class="swatch red"></span>' + t('team1');
-  document.querySelector('label[for="name2"]').innerHTML = '<span class="swatch blue"></span>' + t('team2');
-  $('name1').placeholder = t('ph1'); $('name2').placeholder = t('ph2');
+  $('l-eq1').textContent = t('equipo') + ' 1';
+  $('l-eq2').textContent = t('equipo') + ' 2';
+  ['name1a','name1b','name2a','name2b'].forEach(function(id, i){
+    $(id).placeholder = t(i % 2 === 0 ? 'persona1' : 'persona2');
+  });
+  $('t-anotstitle').textContent = t('playNow');
+  $('t-setupback').textContent = t('home');
   $('goal-label').textContent = t('playTo');
   $('goal-custom').placeholder = t('otherGoal');
   $('btn-start').textContent = t('play');
-  $('btn-history-setup').textContent = t('historyBtn');
-  $('btn-settings-setup').textContent = t('settingsBtn');
   $('t-goal').textContent = t('goal');
   document.querySelectorAll('.add-btn').forEach(function(b){ b.textContent = t('add'); });
   $('t-pointsfor').textContent = t('pointsFor');
@@ -1382,8 +1388,13 @@ $('goal-custom').addEventListener('input', function(){
 });
 
 $('btn-start').addEventListener('click', function(){
-  var n1 = $('name1').value.trim() || (t('equipo') + ' 1');
-  var n2 = $('name2').value.trim() || (t('equipo') + ' 2');
+  /* el nombre del equipo son sus dos personas: "Ana y Luis" */
+  function nombreEq(a, b, num){
+    var partes = [$(a).value.trim(), $(b).value.trim()].filter(Boolean);
+    return partes.join(t('y')) || (t('equipo') + ' ' + num);
+  }
+  var n1 = nombreEq('name1a', 'name1b', 1);
+  var n2 = nombreEq('name2a', 'name2b', 2);
   var custom = parseInt($('goal-custom').value, 10);
   var goal = (custom > 9) ? custom : selectedGoal;
   state = { phase:'game', goal:goal, players:[ {name:n1, scores:[]}, {name:n2, scores:[]} ] };
@@ -1755,7 +1766,7 @@ $('btn-hist-back').addEventListener('click', function(){
   if(histFromHome) showSettings();
   else render();
 });
-$('btn-history-setup').addEventListener('click', showHistory);
+$('setup-back').addEventListener('click', showSettings);
 
 function renderHistory(){
   var h = loadHistory();
@@ -4448,7 +4459,6 @@ function mostrarAjustes(ver){
 $('home-ajustes').addEventListener('click', function(){ mostrarAjustes(true); });
 $('ajustes-back').addEventListener('click', function(){ mostrarAjustes(false); });
 $('btn-home').addEventListener('click', showSettings);
-$('btn-settings-setup').addEventListener('click', showSettings);
 $('home-play').addEventListener('click', function(){
   $('scr-settings').classList.add('hidden');
   render();
