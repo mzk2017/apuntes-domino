@@ -525,7 +525,7 @@
       <p class="set-note" id="t-qrnote">…o que escaneen este código con la cámara del teléfono</p>
     </div>
     <p class="set-note" id="t-installnote" style="line-height:1.5">📱 Para el iconito 🎲 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".</p>
-    <p class="set-note" id="app-ver" style="text-align:center;opacity:.55;margin-top:14px">Versión del 28/08/2026 a las 22:53</p>
+    <p class="set-note" id="app-ver" style="text-align:center;opacity:.55;margin-top:14px">Versión del 28/08/2026 a las 23:10</p>
     <p class="set-note" style="text-align:center;margin-top:22px;opacity:.7">© 2026 Domino Cubano Counter · Todos los derechos reservados<br>Prohibida su venta o redistribución</p>
   </div>
 </div>
@@ -2104,7 +2104,9 @@ function dibujaCadena(fichas){
        Cada fila termina dejando libre el ancho de una ficha parada (S),
        que es el hueco donde va la ficha de la vuelta: así nunca hay que
        encajarla encima de la anterior. */
-    var sep = 5;
+    /* aire entre las filas, como en la mesa de verdad: la ficha de la
+       vuelta queda colgando sola y la serpiente respira */
+    var sep = Math.max(6, Math.round(S * 0.45));
     var pitch = L / 2 + S / 2 + sep;   /* distancia entre filas */
     var sobra = (L - S) / 2;           /* lo que sobresale un doble */
     var pos = [], row = 0, dx = 1, x = 0;
@@ -2116,10 +2118,10 @@ function dibujaCadena(fichas){
       var rowTop = sobra + row * pitch;          /* borde superior de la fila */
       var rowMid = rowTop + S / 2;               /* línea central de la fila */
       if(!cabe && pos.length){
-        /* la vuelta: ficha parada en la orilla, del mismo tamaño que
-           cualquier otra, que baja hasta enlazar con la fila siguiente */
+        /* la vuelta: ficha parada en la orilla que BAJA tocando la fila
+           siguiente, como la esquina de un dominó de verdad */
         var tx = dx === 1 ? x : x - S;
-        pos.push({x: tx, y: rowMid - L / 2, w: S, h: L, vert: true, flip: false, f: f, row: row});
+        pos.push({x: tx, y: rowTop + pitch - L, w: S, h: L, vert: true, flip: false, f: f, row: row});
         row++; dx = -dx;
         /* la fila nueva arranca DEBAJO de la ficha de la vuelta (no a su
            lado), que es como se dobla una longaniza de verdad: si va
@@ -2151,7 +2153,8 @@ function dibujaCadena(fichas){
         abajo.forEach(function(B){
           var ox = Math.min(A.x + A.w, B.x + B.w) - Math.max(A.x, B.x);
           if(ox > 0.5){
-            var falta = (A.y + A.h + sep) - B.y;
+            /* tocarse está bien (la esquina engancha); montarse no */
+            var falta = (A.y + A.h) - B.y;
             if(falta > extra) extra = falta;
           }
         });
@@ -3211,12 +3214,8 @@ function renderJuego(){
       (a.uid === fbUID ? ' (' + t('jgTu') + ')' : '')));
     if(JUEGO.estado === 'jugando'){
       if(a.uid === fbUID){
-        el.appendChild(document.createTextNode(' · ' + nf + ' '));
-        for(var fm = 0; fm < Math.min(nf, 10); fm++){
-          var miniM = document.createElement('i');
-          miniM.className = 'fb';
-          el.appendChild(miniM);
-        }
+        /* mis fichas ya las veo abajo en mi mano: mi puesto solo lleva
+           mi nombre (el conteo lo ven los DEMÁS en sus teléfonos) */
       }else if(pos === 'left' || pos === 'right'){
         /* de lado: el chip va girado, así que el dibujito va como emoji
            suelto (un círculo de color se vería acostado) */
