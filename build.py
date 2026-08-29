@@ -3,7 +3,7 @@
   - index.html     -> documento completo para abrir localmente o alojar como PWA
 Uso: python build.py
 """
-import base64, pathlib
+import base64, datetime, pathlib
 
 ROOT = pathlib.Path(__file__).parent
 SND = ROOT / "sounds"
@@ -16,6 +16,7 @@ src = (ROOT / "app-src.html").read_text(encoding="utf-8")
 src = src.replace("%%FANFARE%%", data_uri(SND / "fanfare.mp3"))
 src = src.replace("%%APPLAUSE%%", data_uri(SND / "applause.mp3"))
 src = src.replace("%%QR%%", data_uri(ROOT / "qr.png", "image/png"))
+src = src.replace("%%BUILD%%", datetime.datetime.now().strftime("%d/%m/%Y a las %H:%M"))
 src = src.replace("%%FICHA%%", data_uri(SND / "ficha.mp3"))
 src = src.replace("%%PUNO%%", data_uri(SND / "puno.mp3"))
 
