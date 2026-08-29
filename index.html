@@ -190,6 +190,12 @@
   .jg-seat.izq{transform:rotate(180deg)}
   .jg-seat.lado .fb{width:6px;height:11px;margin:2px 0}
   .jg-seat.oculto{display:none}
+  /* el numerito con las fichas que le quedan a cada jugador */
+  .fcount{display:inline-block;min-width:1.5em;text-align:center;
+          background:rgba(0,0,0,.4);color:#F5EFE3;border-radius:8px;
+          padding:2px 5px;margin-left:7px;font-weight:800;font-size:.95em;line-height:1.2}
+  .jg-seat.turno .fcount{background:rgba(0,0,0,.28);color:var(--ink)}
+  .jg-seat.lado .fcount{margin-left:0;margin-top:7px;padding:5px 2px}
   .jg-mesa{flex:1;min-height:120px;min-width:0;background:rgba(0,0,0,.28);border:1.5px solid var(--line);border-radius:16px;padding:8px;overflow:auto;display:flex;align-items:center;color:#F5EFE3}
   .jg-cadena{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:2px;row-gap:8px;margin:auto;padding:4px}
   .jg-cadena.serp{display:block;position:relative;flex:none;padding:0}
@@ -355,7 +361,7 @@
   .fch.mano{width:var(--manoW);height:calc(var(--manoW) * 2)}
   .fch.mano .pp{width:calc(var(--manoW) * .18);height:calc(var(--manoW) * .18)}
   /* los jugadores de los lados, proporcionales */
-  .jg-seat.lado{flex:0 0 clamp(24px, 4.4vmin, 42px);font-size:clamp(.6rem, 1.5vmin, .85rem)}
+  .jg-seat.lado{flex:0 0 clamp(30px, 5.4vmin, 50px);font-size:clamp(.78rem, 2vmin, 1.05rem);font-weight:800}
   .jg-seat.lado .fb{width:clamp(5px,1.1vmin,9px);height:clamp(9px,2vmin,16px)}
 
   /* pantallas medianas (tablet de pie, plegable abierto, ventana grande) */
@@ -525,7 +531,7 @@
       <p class="set-note" id="t-qrnote">…o que escaneen este código con la cámara del teléfono</p>
     </div>
     <p class="set-note" id="t-installnote" style="line-height:1.5">📱 Para el iconito 🎲 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".</p>
-    <p class="set-note" id="app-ver" style="text-align:center;opacity:.55;margin-top:14px">Versión del 28/08/2026 a las 23:10</p>
+    <p class="set-note" id="app-ver" style="text-align:center;opacity:.55;margin-top:14px">Versión del 29/08/2026 a las 15:28</p>
     <p class="set-note" style="text-align:center;margin-top:22px;opacity:.7">© 2026 Domino Cubano Counter · Todos los derechos reservados<br>Prohibida su venta o redistribución</p>
   </div>
 </div>
@@ -3217,24 +3223,18 @@ function renderJuego(){
         /* mis fichas ya las veo abajo en mi mano: mi puesto solo lleva
            mi nombre (el conteo lo ven los DEMÁS en sus teléfonos) */
       }else if(pos === 'left' || pos === 'right'){
-        /* de lado: el chip va girado, así que el dibujito va como emoji
-           suelto (un círculo de color se vería acostado) */
-        el.textContent = (a.bot ? '🤖' : (a.e || '🎲')) + a.nombre.replace('🤖 ', '') + ' ';
-        for(var fl = 0; fl < Math.min(nf, 8); fl++){
-          var miniL = document.createElement('i');
-          miniL.className = 'fb';
-          el.appendChild(miniL);
-        }
-        el.appendChild(document.createTextNode(' ' + nf));
+        /* de lado: nombre bien claro y el número de fichas que le quedan */
+        el.textContent = (a.bot ? '🤖 ' : (a.e ? a.e + ' ' : '')) + a.nombre.replace('🤖 ', '');
+        var numL = document.createElement('b');
+        numL.className = 'fcount';
+        numL.textContent = nf;
+        el.appendChild(numL);
       }else{
-        /* las fichitas boca abajo que le quedan */
-        el.appendChild(document.createTextNode(' '));
-        for(var fb = 0; fb < Math.min(nf, 12); fb++){
-          var mini = document.createElement('i');
-          mini.className = 'fb';
-          el.appendChild(mini);
-        }
-        el.appendChild(document.createTextNode(' ' + nf));
+        /* al frente: solo el número de fichas que le quedan */
+        var numT = document.createElement('b');
+        numT.className = 'fcount';
+        numT.textContent = nf;
+        el.appendChild(numT);
       }
     }
   });
