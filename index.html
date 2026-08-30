@@ -552,7 +552,7 @@
     </div>
     <p class="set-note" id="t-installnote" style="line-height:1.5">📱 Para el iconito 🎲 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".</p>
   </div><!-- /ajustes-panel -->
-    <p class="set-note" id="app-ver" style="text-align:center;opacity:.55;margin-top:14px">Versión del 29/08/2026 a las 17:15</p>
+    <p class="set-note" id="app-ver" style="text-align:center;opacity:.55;margin-top:14px">Versión del 29/08/2026 a las 22:29</p>
     <p class="set-note" style="text-align:center;margin-top:22px;opacity:.7">© 2026 Domino Cubano Counter · Todos los derechos reservados<br>Prohibida su venta o redistribución</p>
   </div>
 </div>
@@ -1012,8 +1012,7 @@ var I18N = {
     jgSinJugada:'No tienes jugada 😔 — dale a "Paso".',
     jgTurnoDe:'Le toca a <b>{n}</b>…', jgMirando:'Estás mirando la partida 👀',
     jgFaltan:'Se juega con 2 o 4 jugadores sentados.',
-    jgTranca:'TRANCA', jgEmpate:'🤝 Empate en la tranca',
-    jgEmpateDet:'Mismos puntos por ambos lados: nadie anota esta mano.',
+    jgTranca:'TRANCA', jgPierde:'😞 Pierde: {n}.',
     jgPuntosGanados:'Se lleva {n} puntos para el marcador.',
     jgSentarme:'Sentarme a jugar', jgRepartir:'Repartir', jgPasar:'👊 ¡No llevo!',
     jgEmpezar:'▶ ¡Empezar a jugar!',
@@ -1132,8 +1131,7 @@ var I18N = {
     jgSinJugada:'No possible move 😔 — tap "Pass".',
     jgTurnoDe:'It’s <b>{n}</b>’s turn…', jgMirando:'You are watching the game 👀',
     jgFaltan:'The game needs 2 or 4 seated players.',
-    jgTranca:'BLOCKED', jgEmpate:'🤝 Blocked game tie',
-    jgEmpateDet:'Same pips on both sides: nobody scores this hand.',
+    jgTranca:'BLOCKED', jgPierde:'😞 {n} loses.',
     jgPuntosGanados:'Takes {n} points to the scoreboard.',
     jgSentarme:'Take a seat', jgRepartir:'Deal', jgPasar:'👊 I pass',
     jgEmpezar:'▶ Start playing!',
@@ -1204,6 +1202,10 @@ var I18N = {
 function t(k){ return (I18N[SETTINGS.lang] && I18N[SETTINGS.lang][k]) || I18N.es[k] || k; }
 function tf(k, val){ return t(k).replace('{n}', val).replace('{e}', val); }
 
+/* pone un texto SOLO si el elemento existe: asi un id borrado
+   nunca deja la app a media traduccion */
+function T(id, txt){ var e = document.getElementById(id); if(e) e.textContent = txt; }
+function TP(id, txt){ var e = document.getElementById(id); if(e) e.placeholder = txt; }
 function applySettings(){
   document.body.classList.toggle('light', SETTINGS.theme === 'light');
   MESAS.forEach(function(m){ document.body.classList.toggle('mesa-' + m, SETTINGS.mesa === m); });
@@ -1224,123 +1226,122 @@ function applySettings(){
     sel.value = String(SETTINGS.hen);
   }
   /* textos */
-  document.querySelector('.subtitle').textContent = t('subtitle');
-  $('l-eq1').textContent = t('equipo') + ' 1';
-  $('l-eq2').textContent = t('equipo') + ' 2';
+  T('l-eq1', t('equipo') + ' 1');
+  T('l-eq2', t('equipo') + ' 2');
   ['name1a','name1b','name2a','name2b'].forEach(function(id, i){
     $(id).placeholder = t(i % 2 === 0 ? 'persona1' : 'persona2');
   });
-  $('t-anotstitle').textContent = t('playNow');
-  $('t-setupback').textContent = t('home');
-  $('goal-label').textContent = t('playTo');
-  $('goal-custom').placeholder = t('otherGoal');
-  $('btn-start').textContent = t('play');
-  $('t-goal').textContent = t('goal');
+  T('t-anotstitle', t('playNow'));
+  T('t-setupback', t('home'));
+  T('goal-label', t('playTo'));
+  TP('goal-custom', t('otherGoal'));
+  T('btn-start', t('play'));
+  T('t-goal', t('goal'));
   document.querySelectorAll('.add-btn').forEach(function(b){ b.textContent = t('add'); });
-  $('t-pointsfor').textContent = t('pointsFor');
-  $('kp-ok').textContent = t('sum');
-  $('kp-cancel').textContent = t('cancel');
-  $('t-menu').textContent = t('menu');
-  $('menu-rematch').textContent = t('again');
-  $('menu-newplayers').textContent = t('changeAll');
-  $('menu-history').textContent = t('historyBtn');
-  $('menu-cancel').textContent = t('cancel');
-  $('t-winner').textContent = t('winner');
-  $('btn-rematch').textContent = t('rematch');
-  $('btn-rematch2').textContent = t('rematch');
-  $('btn-newplayers').textContent = t('newPlayers');
-  $('btn-newplayers2').textContent = t('newPlayers');
-  $('t-histtitle').textContent = t('histTitle');
-  $('btn-hist-back').textContent = t('back');
-  $('home-play').textContent = state.phase === 'game' ? t('continueGame') : t('playNow');
-  $('home-new').textContent = t('newGame');
+  T('t-pointsfor', t('pointsFor'));
+  T('kp-ok', t('sum'));
+  T('kp-cancel', t('cancel'));
+  T('t-menu', t('menu'));
+  T('menu-rematch', t('again'));
+  T('menu-newplayers', t('changeAll'));
+  T('menu-history', t('historyBtn'));
+  T('menu-cancel', t('cancel'));
+  T('t-winner', t('winner'));
+  T('btn-rematch', t('rematch'));
+  T('btn-rematch2', t('rematch'));
+  T('btn-newplayers', t('newPlayers'));
+  T('btn-newplayers2', t('newPlayers'));
+  T('t-histtitle', t('histTitle'));
+  T('btn-hist-back', t('back'));
+  T('home-play', state.phase === 'game' ? t('continueGame') : t('playNow'));
+  T('home-new', t('newGame'));
   $('home-new').classList.toggle('hidden', state.phase !== 'game');
-  $('btn-history-home').textContent = t('historyBtn');
-  $('btn-salas').textContent = t('salasBtn');
-  $('t-salastitle').textContent = t('salasTitle');
-  $('t-salahint').textContent = t('salaHint');
-  $('t-salainvitar').textContent = t('salaInvitar');
-  $('t-salasalir').textContent = t('salaSalir');
-  $('t-crearsala').textContent = t('salaCrearSec');
-  $('t-unirsala').textContent = t('salaUnirSec');
-  $('sala-crear').textContent = t('salaCrearBtn');
-  $('t-salajugar').textContent = t('salaJugar');
-  $('t-jgvolver').textContent = t('jgVolver');
-  $('jg-sentarme').textContent = t('jgSentarme');
-  $('jg-repartir').textContent = t('jgEmpezar');   /* renderJuego le pone el detalle */
-  $('jg-pasar').textContent = t('jgPasar');
-  $('t-jgcuantos').textContent = t('jgCuantos');
-  $('t-jgbots').textContent = t('jgBotsQ');
+  T('btn-history-home', t('historyBtn'));
+  T('btn-salas', t('salasBtn'));
+  T('t-salastitle', t('salasTitle'));
+  T('t-salahint', t('salaHint'));
+  T('t-salainvitar', t('salaInvitar'));
+  T('t-salasalir', t('salaSalir'));
+  T('t-crearsala', t('salaCrearSec'));
+  T('t-unirsala', t('salaUnirSec'));
+  T('sala-crear', t('salaCrearBtn'));
+  T('t-salajugar', t('salaJugar'));
+  T('t-jgvolver', t('jgVolver'));
+  T('jg-sentarme', t('jgSentarme'));
+  T('jg-repartir', t('jgEmpezar'));   /* renderJuego le pone el detalle */
+  T('jg-pasar', t('jgPasar'));
+  T('t-jgcuantos', t('jgCuantos'));
+  T('t-jgbots', t('jgBotsQ'));
   document.querySelectorAll('[data-jgbots]').forEach(function(b){
     b.textContent = b.dataset.jgbots === '1' ? t('jgBotsSi') : t('jgBotsNo');
   });
-  $('t-jgmodo').textContent = t('jgModoQ');
+  T('t-jgmodo', t('jgModoQ'));
   document.querySelectorAll('[data-jgmodo]').forEach(function(b){
     b.textContent = b.dataset.jgmodo === 'solo' ? t('jgModoSolo') : t('jgModoParejas');
   });
-  $('jg-cancelar').textContent = t('jgCancelar');
+  T('jg-cancelar', t('jgCancelar'));
   if(typeof humanosSel !== 'undefined'){
     document.querySelectorAll('[data-humanos]').forEach(function(b){
       b.classList.toggle('sel', parseInt(b.dataset.humanos, 10) === humanosSel);
     });
   }
-  $('t-ladotitle').textContent = t('ladoTitle');
-  $('t-mesa').textContent = t('mesaSec');
-  $('t-nombretitle').textContent = t('nombreTitle');
-  $('t-miavatar').textContent = t('avaMio');
-  $('t-avatarcambiar').textContent = t('avaCambiar');
-  $('t-cuenta').textContent = t('cuentaTitulo');
-  $('t-entrargoogle').textContent = t('cuentaEntrar');
-  $('t-cuentanota').textContent = t('cuentaNota');
+  T('t-ladotitle', t('ladoTitle'));
+  T('t-mesa', t('mesaSec'));
+  T('t-nombretitle', t('nombreTitle'));
+  T('t-miavatar', t('avaMio'));
+  T('t-avatarcambiar', t('avaCambiar'));
+  T('t-cuenta', t('cuentaTitulo'));
+  T('t-entrargoogle', t('cuentaEntrar'));
+  T('t-cuentanota', t('cuentaNota'));
   pintaAvatarAjustes();
   pintaCuenta();
-  $('mi-nombre').placeholder = t('nombrePh');
-  $('nombre-ok').textContent = t('nombreOk');
-  $('t-otramano').textContent = t('otraMano');
-  $('t-vermarcador').textContent = t('verMarcador');
-  $('sala-unirse').textContent = t('salaUnirBtn');
-  $('sala-nombre').placeholder = t('salaNombrePh');
-  $('sala-codigo').placeholder = t('salaCodigoPh');
-  $('salas-cancel').textContent = t('cancel');
-  $('hist-stats-title').textContent = t('record');
-  $('t-games').textContent = t('games');
-  $('btn-hist-clear').textContent = t('clear');
-  $('t-camtitle').textContent = t('camTitle');
-  $('cam-live').textContent = t('camLive');
-  $('t-camfile').textContent = t('camFile');
-  $('t-camhint').textContent = t('camHint');
-  $('camchoice-cancel').textContent = t('cancel');
-  $('t-calibtitle').textContent = t('calibTitle');
-  $('t-calibhelp').textContent = t('calibHelp');
-  $('calib-live').textContent = '📸 ' + t('camLive').replace('📸 ','');
-  $('calib-file-label').textContent = t('camFile');
-  $('calib-cancel').textContent = t('cancel');
-  $('cam-close').textContent = t('close');
+  TP('mi-nombre', t('nombrePh'));
+  T('nombre-ok', t('nombreOk'));
+  T('t-otramano', t('otraMano'));
+  T('t-vermarcador', t('verMarcador'));
+  T('sala-unirse', t('salaUnirBtn'));
+  TP('sala-nombre', t('salaNombrePh'));
+  TP('sala-codigo', t('salaCodigoPh'));
+  T('salas-cancel', t('cancel'));
+  T('hist-stats-title', t('record'));
+  T('t-games', t('games'));
+  T('btn-hist-clear', t('clear'));
+  T('t-camtitle', t('camTitle'));
+  T('cam-live', t('camLive'));
+  T('t-camfile', t('camFile'));
+  T('t-camhint', t('camHint'));
+  T('camchoice-cancel', t('cancel'));
+  T('t-calibtitle', t('calibTitle'));
+  T('t-calibhelp', t('calibHelp'));
+  T('calib-live', '📸 ' + t('camLive').replace('📸 ',''));
+  T('calib-file-label', t('camFile'));
+  T('calib-cancel', t('cancel'));
+  T('cam-close', t('close'));
   document.querySelector('.count-q').textContent = t('whoFor');
-  $('count-cancel').textContent = t('cancel');
-  $('t-settings').textContent = t('home');
-  $('home-ajustes').textContent = t('homeAjustes');
-  $('t-ajustesback').textContent = t('home');
-  $('t-lang').textContent = t('langSec');
-  $('t-theme').textContent = t('themeSec');
-  $('t-dark').textContent = t('dark');
-  $('t-light').textContent = t('light');
-  $('t-hen').textContent = t('henSec');
-  $('t-gritosec').textContent = t('gritoSec');
+  T('count-cancel', t('cancel'));
+  T('t-settings', t('home'));
+  T('home-ajustes', t('homeAjustes'));
+  T('t-ajustesback', t('home'));
+  T('t-lang', t('langSec'));
+  T('t-theme', t('themeSec'));
+  T('t-dark', t('dark'));
+  T('t-light', t('light'));
+  T('t-hen', t('henSec'));
+  T('t-gritosec', t('gritoSec'));
   refreshGritoUI();
-  $('t-calibsec').textContent = t('calibSec');
-  $('t-calibnow').textContent = t('calibNow');
-  $('t-calibclear').textContent = t('calibClear');
-  $('t-learnsec').textContent = t('learnSec');
-  $('t-learnreset').textContent = t('learnReset');
-  $('t-fullsec').textContent = t('fullSec');
-  $('t-fullhelp').textContent = t('fullHelp');
-  $('t-sharesec').textContent = t('shareSec');
-  $('t-sharebtn').textContent = t('shareBtn');
-  $('t-qrnote').textContent = t('qrNote');
-  $('t-installnote').textContent = t('installNote');
-  $('fullcalib-live').textContent = t('camLive').replace(' aquí mismo','').replace(' right here','');
-  $('fullcalib-file').textContent = t('camFile');
+  T('t-calibsec', t('calibSec'));
+  T('t-calibnow', t('calibNow'));
+  T('t-calibclear', t('calibClear'));
+  T('t-learnsec', t('learnSec'));
+  T('t-learnreset', t('learnReset'));
+  T('t-fullsec', t('fullSec'));
+  T('t-fullhelp', t('fullHelp'));
+  T('t-sharesec', t('shareSec'));
+  T('t-sharebtn', t('shareBtn'));
+  T('t-qrnote', t('qrNote'));
+  T('t-installnote', t('installNote'));
+  T('fullcalib-live', t('camLive').replace(' aquí mismo','').replace(' right here',''));
+  T('fullcalib-file', t('camFile'));
   refreshSetCalibStatus();
   refreshLearnStatus();
 }
@@ -3127,17 +3128,18 @@ function mostrarFinMano(){
   var r = JUEGO && JUEGO.resultado;
   if(!r) return;
   if(state.phase === 'over') return;   /* la pollona/ganador del juego manda */
-  if(r.ganadorEq < 0){
-    $('finmano-emoji').textContent = '🤝';
-    $('finmano-titulo').textContent = t('jgEmpate');
-    $('finmano-nombre').textContent = '';
-    $('finmano-detalle').textContent = t('jgEmpateDet');
-  }else{
-    $('finmano-emoji').textContent = r.tipo === 'domino' ? '🏆' : '🔒';
-    $('finmano-titulo').textContent = r.tipo === 'domino' ? t('domino') : t('jgTranca');
-    $('finmano-nombre').textContent = r.nombre;
-    $('finmano-detalle').textContent = tf('jgPuntosGanados', r.puntos);
+  /* SIEMPRE hay ganador y perdedor: nada de "tranca" en la cara del
+     jugador — WIN para el que ganó y se nombra al que perdió */
+  var nEqF = cuantosEquipos();
+  var perdedores = [];
+  for(var e = 0; e < nEqF; e++){
+    if(e !== r.ganadorEq) perdedores.push(nombreEquipo(e));
   }
+  $('finmano-emoji').textContent = '🏆';
+  $('finmano-titulo').textContent = r.tipo === 'domino' ? t('domino') : t('winner');
+  $('finmano-nombre').textContent = r.nombre;
+  $('finmano-detalle').textContent = tf('jgPuntosGanados', r.puntos) +
+    (perdedores.length ? ' ' + t('jgPierde').replace('{n}', perdedores.join(' · ')) : '');
   /* elegir con cuántas personas se juega la próxima mano */
   refrescarFmHumanos();
   dingFinMano();
