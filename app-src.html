@@ -1928,7 +1928,7 @@ function loadFirebase(cb){
   if(cb) fbQueue.push(cb);
   if(fbState === 'loading' || fbState === 'failed') return;
   fbState = 'loading';
-  var files = ['fb-app.js', 'fb-auth.js', 'fb-db.js'];
+  var files = ['fb-app.js', 'fb-auth.js', 'fb-db.js', 'fb-appcheck.js'];
   var i = 0;
   function nextScript(){
     if(i >= files.length){ initFB(); return; }
@@ -1941,6 +1941,12 @@ function loadFirebase(cb){
   function initFB(){
     try{
       firebase.initializeApp(FIREBASE_CONFIG);
+      /* App Check: sello de "vengo de la app de verdad" en cada petición.
+         Por ahora Firebase solo VIGILA (no bloquea); el apretón final se
+         da en la consola cuando la app esté en Play Store. */
+      try{
+        firebase.appCheck().activate('6LebpZ8tAAAAAF7bxezQ4LfbyTGSNGIt0k0Lqhie', true);
+      }catch(e){}
       fbDB = firebase.database();
       var arrancado = false;
       /* Si ya entró con Google alguna vez, Firebase se acuerda y lo
