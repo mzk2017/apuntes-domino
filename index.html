@@ -577,7 +577,7 @@
     </div>
     <p class="set-note" id="t-installnote" style="line-height:1.5">📱 Para el iconito 🎲 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".</p>
   </div><!-- /ajustes-panel -->
-    <p class="set-note" id="app-ver" style="text-align:center;opacity:.55;margin-top:14px">Versión del 30/08/2026 a las 00:16</p>
+    <p class="set-note" id="app-ver" style="text-align:center;opacity:.55;margin-top:14px">Versión del 30/08/2026 a las 00:41</p>
     <p class="set-note" style="text-align:center;margin-top:22px;opacity:.7">© 2026 Domino Cubano Counter · Todos los derechos reservados<br>Prohibida su venta o redistribución</p>
   </div>
 </div>
@@ -2260,13 +2260,17 @@ function dibujaCadena(fichas){
     elegido.pos.forEach(function(p){ minX = Math.min(minX, p.x); maxX2 = Math.max(maxX2, p.x + p.w); });
     offX = Math.max(0, (maxW - (maxX2 - minX)) / 2 - minX);
   }
+  /* cada ficha se dibuja un pelín más chica dentro de su casilla: así
+     entre ficha y ficha siempre se ve la ranurita del tapete y ninguna
+     parece montada sobre la vecina */
+  var aire = Math.max(1, Math.round(elegido.pos.length ? (elegido.pos[0].w + elegido.pos[0].h) * 0.012 : 1));
   elegido.pos.forEach(function(p){
     var a = p.f.a, b = p.f.b;
     var el = p.vert ? fichaHTML(a, b, 'v') : fichaHTML(p.flip ? b : a, p.flip ? a : b, 'h');
-    el.style.left = (p.x + offX) + 'px';
-    el.style.top = p.y + 'px';
-    el.style.width = p.w + 'px';
-    el.style.height = p.h + 'px';
+    el.style.left = (p.x + offX + aire) + 'px';
+    el.style.top = (p.y + aire) + 'px';
+    el.style.width = Math.max(8, p.w - aire * 2) + 'px';
+    el.style.height = Math.max(16, p.h - aire * 2) + 'px';
     cont.appendChild(el);
   });
 }

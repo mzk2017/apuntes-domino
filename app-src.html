@@ -2247,13 +2247,17 @@ function dibujaCadena(fichas){
     elegido.pos.forEach(function(p){ minX = Math.min(minX, p.x); maxX2 = Math.max(maxX2, p.x + p.w); });
     offX = Math.max(0, (maxW - (maxX2 - minX)) / 2 - minX);
   }
+  /* cada ficha se dibuja un pelín más chica dentro de su casilla: así
+     entre ficha y ficha siempre se ve la ranurita del tapete y ninguna
+     parece montada sobre la vecina */
+  var aire = Math.max(1, Math.round(elegido.pos.length ? (elegido.pos[0].w + elegido.pos[0].h) * 0.012 : 1));
   elegido.pos.forEach(function(p){
     var a = p.f.a, b = p.f.b;
     var el = p.vert ? fichaHTML(a, b, 'v') : fichaHTML(p.flip ? b : a, p.flip ? a : b, 'h');
-    el.style.left = (p.x + offX) + 'px';
-    el.style.top = p.y + 'px';
-    el.style.width = p.w + 'px';
-    el.style.height = p.h + 'px';
+    el.style.left = (p.x + offX + aire) + 'px';
+    el.style.top = (p.y + aire) + 'px';
+    el.style.width = Math.max(8, p.w - aire * 2) + 'px';
+    el.style.height = Math.max(16, p.h - aire * 2) + 'px';
     cont.appendChild(el);
   });
 }
