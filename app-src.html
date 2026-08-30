@@ -139,6 +139,31 @@
   .fx-actions{display:flex;flex-direction:column;gap:10px;margin-top:26px}
   .fx-btn{padding:15px 0;border-radius:16px;font-family:'Lilita One',cursive;font-size:1.25rem;background:var(--gold);color:var(--ink);box-shadow:0 4px 0 rgba(0,0,0,.35)}
   .fx-btn.ghost{background:rgba(255,255,255,.1);color:var(--bone);box-shadow:none;border:1.5px solid var(--line)}
+  /* la banda de gala del fin de mano, como en los juegos de verdad */
+  .fm-banner{position:relative;margin:2px auto 20px;width:fit-content;max-width:90%;
+             background:linear-gradient(180deg,#F2B458,#D98B25);color:var(--ink);
+             font-family:'Lilita One',cursive;font-size:2rem;letter-spacing:.02em;
+             padding:12px 30px;border-radius:10px;text-wrap:balance;
+             box-shadow:0 8px 18px rgba(0,0,0,.45);text-shadow:0 1px 0 rgba(255,255,255,.35)}
+  .fm-banner:before,.fm-banner:after{content:'';position:absolute;top:12px;border:15px solid #9A5F12;z-index:-1}
+  .fm-banner:before{left:-20px;border-left-color:transparent}
+  .fm-banner:after{right:-20px;border-right-color:transparent}
+  /* el careo: caritas de cada bando y el marcador comparado */
+  .fm-match{display:flex;align-items:flex-start;justify-content:center;gap:10px;margin:4px 0 6px}
+  .fm-side{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;max-width:118px}
+  .fm-side .avs{display:flex;position:relative;height:50px}
+  .fm-side .ava{width:48px;height:48px;font-size:1.6rem;border-radius:14px;
+                box-shadow:0 0 0 3px rgba(255,255,255,.25),0 4px 10px rgba(0,0,0,.4)}
+  .fm-side .ava+.ava{margin-left:-11px}
+  .fm-side.win .ava{box-shadow:0 0 0 3px var(--gold),0 4px 10px rgba(0,0,0,.4)}
+  .fm-side .corona{height:1.25em;font-size:1.15rem;line-height:1}
+  .fm-side .nom{font-weight:800;font-size:.86rem;text-align:center;line-height:1.25;word-break:break-word}
+  .fm-score{background:rgba(0,0,0,.5);border-radius:14px;padding:10px 14px;margin-top:1.55em;
+            font-family:'Lilita One',cursive;font-size:1.8rem;display:flex;gap:9px;align-items:center;
+            box-shadow:inset 0 2px 6px rgba(0,0,0,.4);flex:none}
+  .fm-score .sep{color:var(--bone-dim);font-size:1.2rem;font-family:'Atkinson Hyperlegible',sans-serif}
+  .fm-c0{color:var(--red)} .fm-c1{color:var(--blue)} .fm-c2{color:var(--gold)} .fm-c3{color:#48B27A}
+  .fm-side .tot{font-family:'Lilita One',cursive;font-size:1.6rem;line-height:1}
   @keyframes popIn{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
   .fx-card>*{animation:popIn .5s cubic-bezier(.2,1.4,.4,1) both}
   .fx-card>:nth-child(2){animation-delay:.1s}.fx-card>:nth-child(3){animation-delay:.2s}.fx-card>:nth-child(4){animation-delay:.3s}.fx-card>:nth-child(5){animation-delay:.4s}
@@ -717,9 +742,8 @@
 <!-- fin de la mano: anuncio grande en el centro de la mesa -->
 <div class="fx-overlay hidden" id="ov-finmano">
   <div class="fx-card">
-    <div class="fx-emoji" id="finmano-emoji">🏆</div>
-    <div class="fx-word" id="finmano-titulo">—</div>
-    <div class="fx-name" id="finmano-nombre">—</div>
+    <div class="fm-banner"><span id="finmano-titulo">—</span></div>
+    <div class="fm-match" id="fm-match"></div>
     <p class="fx-sub" id="finmano-detalle">—</p>
     <p class="set-section" id="t-fmcuantos" style="margin:16px 0 6px">¿Cuántas personas juegan la próxima?</p>
     <div class="seg-row" id="fm-humanosrow">
@@ -3005,8 +3029,8 @@ function finalizarMano(seatFinal, tipo, updExtra, uidJugada){
   upd.resultado = { tipo: tipo, ganadorEq: ganadorEq, puntos: puntos,
                     pips: pipsEq,
                     nombre: nombreEquipo(ganadorEq) };
-  jgRef.update(upd);
-  /* sumar al marcador de la sala (dispara pollona si toca) */
+  /* PRIMERO se suma al marcador (así la pantallita del final ya enseña
+     los totales nuevos) y DESPUÉS se avisa a la mesa */
   if(puntos > 0){
     if(state.phase === 'setup') state.phase = 'game';
     while(state.players.length < nEq) state.players.push({ name: '', scores: [] });
@@ -3015,8 +3039,9 @@ function finalizarMano(seatFinal, tipo, updExtra, uidJugada){
     }
     state.players[ganadorEq].scores.push(puntos);
     save();
-    checkWinner(ganadorEq);
   }
+  jgRef.update(upd);
+  if(puntos > 0) checkWinner(ganadorEq);
 }
 function nombreEquipo(eq){
   if(state.players[eq] && state.players[eq].name) return state.players[eq].name;
@@ -3123,18 +3148,57 @@ function mostrarFinMano(){
   var r = JUEGO && JUEGO.resultado;
   if(!r) return;
   if(state.phase === 'over') return;   /* la pollona/ganador del juego manda */
-  /* SIEMPRE hay ganador y perdedor: nada de "tranca" en la cara del
-     jugador — WIN para el que ganó y se nombra al que perdió */
+  /* SIEMPRE hay ganador y perdedor: la banda de gala, las caritas de
+     cada bando (corona al que ganó) y el marcador comparado */
   var nEqF = cuantosEquipos();
-  var perdedores = [];
-  for(var e = 0; e < nEqF; e++){
-    if(e !== r.ganadorEq) perdedores.push(nombreEquipo(e));
-  }
-  $('finmano-emoji').textContent = '🏆';
   $('finmano-titulo').textContent = r.tipo === 'domino' ? t('domino') : t('winner');
-  $('finmano-nombre').textContent = r.nombre;
-  $('finmano-detalle').textContent = tf('jgPuntosGanados', r.puntos) +
-    (perdedores.length ? ' ' + t('jgPierde').replace('{n}', perdedores.join(' · ')) : '');
+  var match = $('fm-match'); match.innerHTML = '';
+  var dosLados = nEqF === 2;
+  for(var e = 0; e < nEqF; e++){
+    var lado = document.createElement('div');
+    lado.className = 'fm-side' + (e === r.ganadorEq ? ' win' : '');
+    var corona = document.createElement('div');
+    corona.className = 'corona';
+    corona.textContent = e === r.ganadorEq ? '👑' : ' ';
+    var avs = document.createElement('div');
+    avs.className = 'avs';
+    var puestos = 0;
+    if(JUEGO.asientos){
+      for(var k in JUEGO.asientos){
+        var a = JUEGO.asientos[k];
+        if(!a || (!a.uid && !a.bot)) continue;
+        if(equipoDe(parseInt(k, 10), JUEGO.nJug || 2) !== e) continue;
+        if(puestos < 2){ avs.appendChild(avaHTML(a)); puestos++; }
+      }
+    }
+    if(!puestos) avs.appendChild(avaHTML(null));
+    var nom = document.createElement('div');
+    nom.className = 'nom';
+    nom.textContent = nombreEquipo(e).replace(/🤖 /g, '');
+    lado.appendChild(corona); lado.appendChild(avs); lado.appendChild(nom);
+    if(!dosLados){
+      /* 3 o 4 por su cuenta: cada uno con su total debajo */
+      var tot3 = document.createElement('div');
+      tot3.className = 'tot fm-c' + e;
+      tot3.textContent = (state.players[e] ? total(e) : 0);
+      lado.appendChild(tot3);
+    }
+    match.appendChild(lado);
+    if(dosLados && e === 0){
+      /* el pastillón del medio con los totales, como en los juegos */
+      var pill = document.createElement('div');
+      pill.className = 'fm-score';
+      var s0 = document.createElement('span'); s0.className = 'fm-c0';
+      s0.textContent = state.players[0] ? total(0) : 0;
+      var sep = document.createElement('span'); sep.className = 'sep'; sep.textContent = '|';
+      var s1 = document.createElement('span'); s1.className = 'fm-c1';
+      s1.textContent = state.players[1] ? total(1) : 0;
+      pill.appendChild(s0); pill.appendChild(sep); pill.appendChild(s1);
+      match.appendChild(pill);
+    }
+  }
+  $('finmano-detalle').textContent = tf('jgPuntosGanados', r.puntos)
+    .replace('.', '') + ' · ' + r.nombre.replace(/🤖 /g, '') + ' 🏆';
   /* elegir con cuántas personas se juega la próxima mano */
   refrescarFmHumanos();
   dingFinMano();
