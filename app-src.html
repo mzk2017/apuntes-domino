@@ -48,6 +48,24 @@
   .tile .half:first-child{border-bottom:2px solid rgba(0,0,0,.25)}
   .pip{width:6px;height:6px;border-radius:50%;background:var(--ink);place-self:center}
   .p1{grid-area:1/1}.p2{grid-area:1/3}.p3{grid-area:2/2}.p4{grid-area:3/1}.p5{grid-area:3/3}
+  /* ---------- el paisaje cubano del Home ---------- */
+  :root{
+    --sc-sol:#EDE6D0; --sc-mar1:#0F455B; --sc-mar2:#0B3244;
+    --sc-isla:#06180F; --sc-palma:#071D12; --sc-tronco:#06180F;
+    --sc-lejos:#0D3A4C; --sc-brillo:rgba(245,239,227,.30); --sc-ave:rgba(245,239,227,.38);
+  }
+  body.light{
+    --sc-sol:#F2B458; --sc-mar1:#8FCBDD; --sc-mar2:#6FB4CC;
+    --sc-isla:#E4D3A2; --sc-palma:#2F7D4F; --sc-tronco:#8B5A33;
+    --sc-lejos:#BFE0EA; --sc-brillo:rgba(255,255,255,.75); --sc-ave:rgba(50,75,88,.55);
+  }
+  #scr-settings{position:relative;overflow:hidden}
+  #settings-head,#settings-scroll{position:relative;z-index:1}
+  .isla-fondo{position:absolute;left:0;right:0;bottom:0;height:min(44vh,340px);
+              pointer-events:none;z-index:0;overflow:hidden}
+  .isla-fondo svg{width:100%;height:100%;display:block}
+  body.light .sc-stars{display:none}
+  #scr-settings.en-ajustes .isla-fondo{display:none}
   /* fichitas chiquitas para el título del Home */
   .tile-mini .tile{width:21px;height:40px;border-radius:5px;box-shadow:0 2px 0 rgba(0,0,0,.3), inset 0 0 0 1.5px rgba(0,0,0,.08)}
   .tile-mini .half{padding:2px}
@@ -566,6 +584,52 @@
   </div><!-- /ajustes-panel -->
     <p class="set-note" id="app-ver" style="text-align:center;opacity:.55;margin-top:14px">Versión del %%BUILD%%</p>
     <p class="set-note" style="text-align:center;margin-top:22px;opacity:.7">© 2026 Domino Cubano Counter · Todos los derechos reservados<br>Prohibida su venta o redistribución</p>
+  </div>
+
+  <!-- el paisaje: islitas con palmeras de guano, el mar y el sol (de noche, luna y estrellas) -->
+  <div class="isla-fondo" aria-hidden="true">
+    <svg viewBox="0 0 800 430" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <g id="sc-palma">
+          <path d="M-7,0 C-1,-42 -4,-92 12,-130 L20,-125 C7,-90 9,-44 9,0 Z" fill="var(--sc-tronco)"/>
+          <g fill="var(--sc-palma)">
+            <path d="M15,-127 C55,-141 95,-136 121,-114 C90,-123 54,-121 13,-112 Z"/>
+            <path d="M15,-127 C51,-112 79,-87 89,-56 C65,-82 40,-101 10,-110 Z"/>
+            <path d="M15,-127 C-25,-141 -66,-136 -92,-113 C-60,-123 -27,-120 14,-112 Z"/>
+            <path d="M15,-127 C-19,-110 -43,-85 -51,-54 C-32,-80 -8,-100 18,-110 Z"/>
+            <path d="M15,-127 C24,-161 45,-181 76,-189 C51,-170 35,-150 22,-122 Z"/>
+            <path d="M15,-127 C5,-159 -13,-179 -44,-187 C-21,-168 -5,-148 8,-122 Z"/>
+          </g>
+          <circle cx="8" cy="-119" r="6" fill="var(--sc-tronco)"/>
+          <circle cx="21" cy="-116" r="5" fill="var(--sc-tronco)"/>
+        </g>
+      </defs>
+      <g transform="translate(0,110)">
+      <circle cx="642" cy="80" r="58" fill="var(--sc-sol)" opacity=".15"/>
+      <circle cx="642" cy="80" r="36" fill="var(--sc-sol)"/>
+      <g class="sc-stars" fill="var(--sc-sol)">
+        <circle cx="88" cy="46" r="2.2"/><circle cx="176" cy="96" r="1.6"/>
+        <circle cx="318" cy="38" r="1.9"/><circle cx="478" cy="66" r="1.5"/>
+        <circle cx="742" cy="150" r="1.7"/><circle cx="540" cy="120" r="1.4"/>
+      </g>
+      <g stroke="var(--sc-ave)" stroke-width="3" fill="none" stroke-linecap="round">
+        <path d="M298,96 q10,-9 20,0 q10,-9 20,0"/>
+        <path d="M356,74 q8,-7 16,0 q8,-7 16,0"/>
+      </g>
+      <ellipse cx="702" cy="240" rx="72" ry="14" fill="var(--sc-lejos)"/>
+      <use href="#sc-palma" transform="translate(702,238) scale(.45)" opacity=".85"/>
+      <path d="M0,238 C80,228 160,248 240,240 C320,232 400,250 480,242 C560,234 640,252 720,244 C760,240 780,242 800,240 L800,320 L0,320 Z" fill="var(--sc-mar1)"/>
+      <path d="M0,272 C100,264 200,280 300,274 C400,268 500,282 600,276 C700,270 760,278 800,274 L800,320 L0,320 Z" fill="var(--sc-mar2)"/>
+      <g stroke="var(--sc-brillo)" stroke-width="4" stroke-linecap="round">
+        <path d="M556,256 h36"/><path d="M608,264 h22"/><path d="M518,268 h18"/><path d="M660,258 h14"/>
+      </g>
+      <ellipse cx="180" cy="308" rx="190" ry="48" fill="var(--sc-isla)"/>
+      <use href="#sc-palma" transform="translate(132,284) scale(1.1)"/>
+      <use href="#sc-palma" transform="translate(232,292) scale(-0.85,0.85)"/>
+      <ellipse cx="645" cy="318" rx="135" ry="38" fill="var(--sc-isla)"/>
+      <use href="#sc-palma" transform="translate(648,298) scale(.8)"/>
+      </g>
+    </svg>
   </div>
 </div>
 
@@ -4527,6 +4591,7 @@ function showSettings(){
 function mostrarAjustes(ver){
   $('home-menu').classList.toggle('hidden', ver);
   $('ajustes-panel').classList.toggle('hidden', !ver);
+  $('scr-settings').classList.toggle('en-ajustes', ver);   /* el paisaje solo en el Home */
   $('t-settings').textContent = ver ? '⚙️ ' + t('ajustesTitulo') : t('home');
   document.querySelectorAll('#settings-head .tile-mini').forEach(function(m){
     m.classList.toggle('hidden', ver);
