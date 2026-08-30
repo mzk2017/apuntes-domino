@@ -552,7 +552,7 @@
     </div>
     <p class="set-note" id="t-installnote" style="line-height:1.5">📱 Para el iconito 🎲 en la pantalla: Android (Chrome): ⋮ → "Agregar a pantalla principal". iPhone (Safari): botón compartir → "Agregar a inicio".</p>
   </div><!-- /ajustes-panel -->
-    <p class="set-note" id="app-ver" style="text-align:center;opacity:.55;margin-top:14px">Versión del 29/08/2026 a las 23:29</p>
+    <p class="set-note" id="app-ver" style="text-align:center;opacity:.55;margin-top:14px">Versión del 29/08/2026 a las 23:53</p>
     <p class="set-note" style="text-align:center;margin-top:22px;opacity:.7">© 2026 Domino Cubano Counter · Todos los derechos reservados<br>Prohibida su venta o redistribución</p>
   </div>
 </div>
@@ -1958,7 +1958,9 @@ function loadFirebase(cb){
          Por ahora Firebase solo VIGILA (no bloquea); el apretón final se
          da en la consola cuando la app esté en Play Store. */
       try{
-        firebase.appCheck().activate('6LebpZ8tAAAAAF7bxezQ4LfbyTGSNGIt0k0Lqhie', true);
+        firebase.appCheck().activate(
+          new firebase.appCheck.ReCaptchaEnterpriseProvider('6LebpZ8tAAAAAF7bxezQ4LfbyTGSNGIt0k0Lqhie'),
+          true);
       }catch(e){}
       fbDB = firebase.database();
       var arrancado = false;

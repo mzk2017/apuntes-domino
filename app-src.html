@@ -1945,7 +1945,9 @@ function loadFirebase(cb){
          Por ahora Firebase solo VIGILA (no bloquea); el apretón final se
          da en la consola cuando la app esté en Play Store. */
       try{
-        firebase.appCheck().activate('6LebpZ8tAAAAAF7bxezQ4LfbyTGSNGIt0k0Lqhie', true);
+        firebase.appCheck().activate(
+          new firebase.appCheck.ReCaptchaEnterpriseProvider('6LebpZ8tAAAAAF7bxezQ4LfbyTGSNGIt0k0Lqhie'),
+          true);
       }catch(e){}
       fbDB = firebase.database();
       var arrancado = false;
